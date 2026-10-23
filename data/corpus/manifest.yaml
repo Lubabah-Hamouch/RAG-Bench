@@ -1,0 +1,54 @@
+# Corpus manifest: the single source of truth for what gets indexed and how it is cleaned.
+# `references.start` / `references.end` are regexes matched against single stripped lines.
+# Lines from the start match up to (not including) the end match are dropped before chunking,
+# so bibliography entries do not pollute retrieval. If `end` is omitted, everything after
+# `start` is dropped.
+documents:
+  - id: lewis2020_rag
+    file: 2005.11401v4.pdf
+    title: "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks (Lewis et al.)"
+    role: core
+    references:
+      start: '^References$'
+      end: '^Appendices for Retrieval-Augmented Generation'
+
+  - id: asai2023_selfrag
+    file: 2310.11511v1.pdf
+    title: "Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection (Asai et al.)"
+    role: core
+    references:
+      start: '^REFERENCES$'
+      end: '^APPENDIX$'
+
+  - id: singhvi2023_dspy_assertions
+    file: 2312.13382v2.pdf
+    title: "DSPy Assertions: Computational Constraints for Self-Refining Language Model Pipelines (Singhvi et al.)"
+    role: core
+    references:
+      start: '^References$'
+      end: '^A\. Implementation$'
+
+  - id: pinecone_vector_db
+    file: "What is a Vector Database & How Does it Work_ Use Cases + Examples _ Pinecone.pdf"
+    title: "What is a Vector Database & How Does it Work? (Pinecone)"
+    role: core
+
+  - id: weaviate_docs
+    file: "Weaviate Database _ Weaviate Documentation.pdf"
+    title: "Weaviate Database | Weaviate Documentation (intro page)"
+    role: core
+
+  - id: langchain_overview
+    file: "LangChain overview - Docs by LangChain.pdf"
+    title: "LangChain overview (Docs by LangChain)"
+    role: core
+    notes: "Hyperlink labels are absent from the PDF's text layer (blank slots like 'and .')."
+
+  # Deliberate retrieval distractor (decision D8): an off-topic point-cloud survey.
+  # No benchmark question targets it; it should rarely appear in top-4 for RAG questions.
+  - id: zhu2023_pointcloud_survey
+    file: 2308.12113v5.pdf
+    title: "Advancements in Point Cloud Data Augmentation for Deep Learning: A Survey (Zhu et al.)"
+    role: distractor
+    references:
+      start: '^Reference$'   # no end: its appendix holds tables plus a second bibliography

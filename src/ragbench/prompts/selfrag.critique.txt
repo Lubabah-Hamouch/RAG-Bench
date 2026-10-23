@@ -1,0 +1,25 @@
+You are a strict reviewer. Critique the initial answer against the context. Be specific and brief.
+
+Context:
+{context}
+
+Question: {question}
+
+Initial answer:
+{stage1_output}
+
+Produce the critique in exactly this format:
+
+Passage relevance:
+[1] Relevant | Irrelevant
+[2] Relevant | Irrelevant
+[3] Relevant | Irrelevant
+[4] Relevant | Irrelevant
+
+Answerable from context: Yes | Partially | No
+Factual accuracy: Fully supported | Partially supported | Not supported
+Unsupported or incorrect claims: <quote each, or "None">
+Completeness: Complete | Incomplete
+Missing information from the context: <list, or "None">
+Utility (1-5): <integer>
+Revision instructions: <one to three concrete edits, or "No changes needed">

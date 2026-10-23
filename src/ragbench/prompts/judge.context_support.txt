@@ -1,0 +1,14 @@
+Decide whether the passages below contain the information needed to state each gold fact.
+A paraphrase or a clear implication in the passages counts; a vague or partial mention does not.
+Use ONLY the passages. Ignore your own world knowledge.
+
+Question: {question}
+
+Passages:
+{context}
+
+Gold facts:
+{numbered_gold_facts}
+
+Return JSON only, with exactly one entry per gold fact:
+{"support": [{"fact_id": 1, "supported": true}]}

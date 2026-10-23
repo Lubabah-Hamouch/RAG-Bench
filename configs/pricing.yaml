@@ -1,0 +1,11 @@
+# USD per 1,000,000 tokens (list prices, not what you pay on the free tier, which is $0).
+# Source: each model's page on console.groq.com/docs/model/<id>, read 2026-10-23.
+# Re-check before publishing results; unknown models get cost = null rather than a guess.
+models:
+  qwen/qwen3.8-27b:
+    input_per_mtok: 0.80
+    output_per_mtok: 4.00
+    note: "Preview model. The page's '$1 buys' hints suggest input may be ~0.77."
+  openai/gpt-oss-20b:
+    input_per_mtok: 0.075
+    output_per_mtok: 0.30

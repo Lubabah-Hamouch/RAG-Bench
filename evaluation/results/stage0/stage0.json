@@ -1,0 +1,527 @@
+{
+ "variants": {
+  "current k=4": {
+   "Q03": {
+    "recall": 0.5,
+    "supported": [
+     false,
+     true,
+     true,
+     false
+    ],
+    "n_chunks": 4,
+    "docs": [
+     "asai2023"
+    ],
+    "chunk_ids": [
+     "asai2023_selfrag:p16:c1",
+     "asai2023_selfrag:p10:c4",
+     "asai2023_selfrag:p4:c4",
+     "asai2023_selfrag:p10:c6"
+    ],
+    "judge_tokens": 879
+   },
+   "Q08": {
+    "recall": 0.6666666666666666,
+    "supported": [
+     true,
+     true,
+     false
+    ],
+    "n_chunks": 4,
+    "docs": [
+     "langchain"
+    ],
+    "chunk_ids": [
+     "langchain_overview:p1:c1",
+     "langchain_overview:p3:c0",
+     "langchain_overview:p1:c0",
+     "langchain_overview:p2:c0"
+    ],
+    "judge_tokens": 730
+   },
+   "Q09": {
+    "recall": 0.5,
+    "supported": [
+     false,
+     true,
+     true,
+     false
+    ],
+    "n_chunks": 4,
+    "docs": [
+     "asai2023",
+     "lewis2020"
+    ],
+    "chunk_ids": [
+     "lewis2020_rag:p10:c2",
+     "asai2023_selfrag:p9:c0",
+     "lewis2020_rag:p6:c2",
+     "asai2023_selfrag:p1:c7"
+    ],
+    "judge_tokens": 785
+   },
+   "Q11": {
+    "recall": 0.3333333333333333,
+    "supported": [
+     true,
+     false,
+     false
+    ],
+    "n_chunks": 4,
+    "docs": [
+     "lewis2020"
+    ],
+    "chunk_ids": [
+     "lewis2020_rag:p19:c2",
+     "lewis2020_rag:p2:c8",
+     "lewis2020_rag:p9:c6",
+     "lewis2020_rag:p5:c7"
+    ],
+    "judge_tokens": 911
+   },
+   "Q12": {
+    "recall": 0.6666666666666666,
+    "supported": [
+     true,
+     true,
+     false
+    ],
+    "n_chunks": 4,
+    "docs": [
+     "asai2023",
+     "lewis2020"
+    ],
+    "chunk_ids": [
+     "asai2023_selfrag:p1:c4",
+     "asai2023_selfrag:p1:c0",
+     "lewis2020_rag:p9:c3",
+     "asai2023_selfrag:p11:c0"
+    ],
+    "judge_tokens": 864
+   }
+  },
+  "flat k=8": {
+   "Q03": {
+    "recall": 0.75,
+    "supported": [
+     true,
+     true,
+     true,
+     false
+    ],
+    "n_chunks": 8,
+    "docs": [
+     "asai2023"
+    ],
+    "chunk_ids": [
+     "asai2023_selfrag:p16:c1",
+     "asai2023_selfrag:p10:c4",
+     "asai2023_selfrag:p4:c4",
+     "asai2023_selfrag:p10:c6",
+     "asai2023_selfrag:p1:c7",
+     "asai2023_selfrag:p3:c6",
+     "asai2023_selfrag:p10:c7",
+     "asai2023_selfrag:p4:c1"
+    ],
+    "judge_tokens": 1287
+   },
+   "Q08": {
+    "recall": 1.0,
+    "supported": [
+     true,
+     true,
+     true
+    ],
+    "n_chunks": 8,
+    "docs": [
+     "langchain",
+     "lewis2020",
+     "pinecone",
+     "singhvi2023"
+    ],
+    "chunk_ids": [
+     "langchain_overview:p1:c1",
+     "langchain_overview:p3:c0",
+     "langchain_overview:p1:c0",
+     "langchain_overview:p2:c0",
+     "langchain_overview:p1:c2",
+     "lewis2020_rag:p10:c1",
+     "singhvi2023_dspy_assertions:p1:c4",
+     "pinecone_vector_db:p20:c2"
+    ],
+    "judge_tokens": 1171
+   },
+   "Q09": {
+    "recall": 0.75,
+    "supported": [
+     false,
+     true,
+     true,
+     true
+    ],
+    "n_chunks": 8,
+    "docs": [
+     "asai2023",
+     "lewis2020"
+    ],
+    "chunk_ids": [
+     "lewis2020_rag:p10:c2",
+     "asai2023_selfrag:p9:c0",
+     "lewis2020_rag:p6:c2",
+     "asai2023_selfrag:p1:c7",
+     "asai2023_selfrag:p20:c7",
+     "asai2023_selfrag:p10:c4",
+     "asai2023_selfrag:p9:c1",
+     "lewis2020_rag:p19:c2"
+    ],
+    "judge_tokens": 1217
+   },
+   "Q11": {
+    "recall": 0.3333333333333333,
+    "supported": [
+     true,
+     false,
+     false
+    ],
+    "n_chunks": 8,
+    "docs": [
+     "lewis2020",
+     "pinecone"
+    ],
+    "chunk_ids": [
+     "lewis2020_rag:p19:c2",
+     "lewis2020_rag:p2:c8",
+     "lewis2020_rag:p9:c6",
+     "lewis2020_rag:p5:c7",
+     "pinecone_vector_db:p20:c2",
+     "pinecone_vector_db:p22:c0",
+     "pinecone_vector_db:p8:c1",
+     "lewis2020_rag:p7:c5"
+    ],
+    "judge_tokens": 1290
+   },
+   "Q12": {
+    "recall": 0.6666666666666666,
+    "supported": [
+     true,
+     true,
+     false
+    ],
+    "n_chunks": 8,
+    "docs": [
+     "asai2023",
+     "lewis2020",
+     "singhvi2023"
+    ],
+    "chunk_ids": [
+     "asai2023_selfrag:p1:c4",
+     "asai2023_selfrag:p1:c0",
+     "lewis2020_rag:p9:c3",
+     "asai2023_selfrag:p11:c0",
+     "singhvi2023_dspy_assertions:p1:c2",
+     "asai2023_selfrag:p1:c3",
+     "lewis2020_rag:p7:c0",
+     "asai2023_selfrag:p29:c2"
+    ],
+    "judge_tokens": 1330
+   }
+  },
+  "LLM decomposition": {
+   "Q03": {
+    "recall": 0.5,
+    "supported": [
+     false,
+     true,
+     true,
+     false
+    ],
+    "n_chunks": 4,
+    "docs": [
+     "asai2023"
+    ],
+    "chunk_ids": [
+     "asai2023_selfrag:p16:c1",
+     "asai2023_selfrag:p10:c4",
+     "asai2023_selfrag:p4:c4",
+     "asai2023_selfrag:p10:c6"
+    ],
+    "judge_tokens": 879
+   },
+   "Q08": {
+    "recall": 0.6666666666666666,
+    "supported": [
+     true,
+     true,
+     false
+    ],
+    "n_chunks": 4,
+    "docs": [
+     "langchain"
+    ],
+    "chunk_ids": [
+     "langchain_overview:p1:c1",
+     "langchain_overview:p3:c0",
+     "langchain_overview:p1:c0",
+     "langchain_overview:p2:c0"
+    ],
+    "judge_tokens": 730
+   },
+   "Q09": {
+    "recall": 0.5,
+    "supported": [
+     false,
+     true,
+     true,
+     false
+    ],
+    "n_chunks": 6,
+    "docs": [
+     "asai2023",
+     "lewis2020"
+    ],
+    "chunk_ids": [
+     "lewis2020_rag:p10:c2",
+     "lewis2020_rag:p9:c6",
+     "asai2023_selfrag:p3:c6",
+     "asai2023_selfrag:p9:c0",
+     "lewis2020_rag:p19:c2",
+     "asai2023_selfrag:p10:c7"
+    ],
+    "judge_tokens": 972
+   },
+   "Q11": {
+    "recall": 0.6666666666666666,
+    "supported": [
+     true,
+     false,
+     true
+    ],
+    "n_chunks": 6,
+    "docs": [
+     "lewis2020",
+     "pinecone"
+    ],
+    "chunk_ids": [
+     "lewis2020_rag:p19:c2",
+     "pinecone_vector_db:p8:c1",
+     "lewis2020_rag:p10:c2",
+     "lewis2020_rag:p2:c8",
+     "pinecone_vector_db:p1:c0",
+     "lewis2020_rag:p9:c6"
+    ],
+    "judge_tokens": 1091
+   },
+   "Q12": {
+    "recall": 0.6666666666666666,
+    "supported": [
+     true,
+     false,
+     true
+    ],
+    "n_chunks": 6,
+    "docs": [
+     "asai2023",
+     "lewis2020",
+     "singhvi2023"
+    ],
+    "chunk_ids": [
+     "asai2023_selfrag:p1:c4",
+     "lewis2020_rag:p1:c5",
+     "asai2023_selfrag:p1:c0",
+     "singhvi2023_dspy_assertions:p2:c6",
+     "lewis2020_rag:p1:c4",
+     "lewis2020_rag:p9:c3"
+    ],
+    "judge_tokens": 1075
+   }
+  },
+  "doc-balanced k=6": {
+   "Q03": {
+    "recall": 0.75,
+    "supported": [
+     true,
+     true,
+     true,
+     false
+    ],
+    "n_chunks": 6,
+    "docs": [
+     "asai2023",
+     "lewis2020"
+    ],
+    "chunk_ids": [
+     "asai2023_selfrag:p16:c1",
+     "lewis2020_rag:p10:c2",
+     "asai2023_selfrag:p10:c4",
+     "asai2023_selfrag:p4:c4",
+     "asai2023_selfrag:p10:c6",
+     "asai2023_selfrag:p1:c7"
+    ],
+    "judge_tokens": 1044
+   },
+   "Q08": {
+    "recall": 0.6666666666666666,
+    "supported": [
+     true,
+     true,
+     false
+    ],
+    "n_chunks": 6,
+    "docs": [
+     "langchain",
+     "lewis2020",
+     "singhvi2023"
+    ],
+    "chunk_ids": [
+     "langchain_overview:p1:c1",
+     "lewis2020_rag:p10:c1",
+     "singhvi2023_dspy_assertions:p1:c4",
+     "langchain_overview:p3:c0",
+     "langchain_overview:p1:c0",
+     "langchain_overview:p2:c0"
+    ],
+    "judge_tokens": 956
+   },
+   "Q09": {
+    "recall": 0.75,
+    "supported": [
+     false,
+     true,
+     true,
+     true
+    ],
+    "n_chunks": 6,
+    "docs": [
+     "asai2023",
+     "lewis2020",
+     "pinecone"
+    ],
+    "chunk_ids": [
+     "lewis2020_rag:p10:c2",
+     "asai2023_selfrag:p9:c0",
+     "pinecone_vector_db:p22:c0",
+     "lewis2020_rag:p6:c2",
+     "asai2023_selfrag:p1:c7",
+     "asai2023_selfrag:p20:c7"
+    ],
+    "judge_tokens": 937
+   },
+   "Q11": {
+    "recall": 0.0,
+    "supported": [
+     false,
+     false,
+     false
+    ],
+    "n_chunks": 6,
+    "docs": [
+     "asai2023",
+     "lewis2020",
+     "pinecone"
+    ],
+    "chunk_ids": [
+     "lewis2020_rag:p19:c2",
+     "pinecone_vector_db:p20:c2",
+     "asai2023_selfrag:p9:c6",
+     "lewis2020_rag:p2:c8",
+     "lewis2020_rag:p9:c6",
+     "lewis2020_rag:p5:c7"
+    ],
+    "judge_tokens": 1096
+   },
+   "Q12": {
+    "recall": 0.6666666666666666,
+    "supported": [
+     true,
+     true,
+     false
+    ],
+    "n_chunks": 6,
+    "docs": [
+     "asai2023",
+     "lewis2020",
+     "singhvi2023"
+    ],
+    "chunk_ids": [
+     "asai2023_selfrag:p1:c4",
+     "lewis2020_rag:p9:c3",
+     "singhvi2023_dspy_assertions:p1:c2",
+     "asai2023_selfrag:p1:c0",
+     "asai2023_selfrag:p11:c0",
+     "asai2023_selfrag:p1:c3"
+    ],
+    "judge_tokens": 1075
+   }
+  }
+ },
+ "multi_hop_recall": {
+  "current k=4": 0.5,
+  "flat k=8": 0.5833333333333334,
+  "LLM decomposition": 0.611111111111111,
+  "doc-balanced k=6": 0.47222222222222215
+ },
+ "lookup_recall": {
+  "current k=4": 0.5833333333333333,
+  "flat k=8": 0.875,
+  "LLM decomposition": 0.5833333333333333,
+  "doc-balanced k=6": 0.7083333333333333
+ },
+ "subqueries": {
+  "Q03": [],
+  "Q08": [],
+  "Q09": [
+   "Original RAG model retrieval strategy and decision process",
+   "Self-RAG adaptive retrieval mechanism and reflection tokens"
+  ],
+  "Q11": [
+   "Pinecone vector search mechanism",
+   "original RAG model retriever architecture"
+  ],
+  "Q12": [
+   "approaches to reduce factual errors in language models",
+   "methods for mitigating hallucinations in large language models"
+  ],
+  "Q13": []
+ },
+ "criteria": {
+  "1_multihop_recall_gain_over_k8_ge_0.15": {
+   "value": 0.02777777777777768,
+   "passed": false
+  },
+  "2_no_more_chunks_than_k8": {
+   "value": [
+    6,
+    8
+   ],
+   "passed": true
+  },
+  "3_no_lookup_regression_vs_current": {
+   "value": {
+    "Q08": [
+     0.6666666666666666,
+     0.6666666666666666
+    ],
+    "Q03": [
+     0.5,
+     0.5
+    ]
+   },
+   "passed": true
+  },
+  "4_q13_still_abstains": {
+   "value": {
+    "retrieval_changed": false,
+    "abstained": {
+     "baseline": true,
+     "structured": true,
+     "rrr": true,
+     "self_rag": true
+    }
+   },
+   "passed": true
+  }
+ },
+ "decomposition_adopted": false,
+ "judge_tokens_total": 20319
+}

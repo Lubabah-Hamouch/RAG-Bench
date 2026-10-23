@@ -1,0 +1,197 @@
+@import "@fontsource-variable/source-serif-4";
+@import "@fontsource-variable/source-serif-4/wght-italic.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * "Lab report" tokens. Colours are space-separated RGB channels so Tailwind can apply opacity.
+ * Paper and ink carry the page; teal marks live/verified/links; brick marks contradicted.
+ * Strategies are told apart by value (graphite to taupe) plus one teal pair, not by hue.
+ */
+:root,
+[data-theme="light"] {
+  --bg: 246 245 241; /* #F6F5F1 paper */
+  --elev: 251 250 247;
+  --ink: 27 30 36; /* #1B1E24 */
+  --dim: 78 83 92;
+  --faint: 118 122 130;
+  --line: 27 30 36; /* ink channels, for tints */
+  --rule: 216 213 204; /* #D8D5CC hairline */
+  --accent: 47 111 94; /* #2F6F5E teal */
+  --good: 47 111 94;
+  --warn: 140 116 62; /* muted ochre, used only for "partial/abstained" */
+  --bad: 181 67 59; /* #B5433B brick */
+  --s-baseline: 43 47 54;
+  --s-structured: 128 134 143;
+  --s-rrr: 47 111 94;
+  --s-self-rag: 128 176 161;
+  --s-control: 176 168 148;
+  --surface-a: 0.025;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg: 20 23 28; /* #14171C */
+  --elev: 26 30 36;
+  --ink: 232 230 223; /* #E8E6DF */
+  --dim: 168 168 161;
+  --faint: 124 126 127;
+  --line: 232 230 223;
+  --rule: 52 57 66;
+  --accent: 96 168 147;
+  --good: 96 168 147;
+  --warn: 190 164 104;
+  --bad: 214 112 102;
+  --s-baseline: 214 216 220;
+  --s-structured: 140 146 156;
+  --s-rrr: 96 168 147;
+  --s-self-rag: 62 112 98;
+  --s-control: 120 114 100;
+  --surface-a: 0.03;
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  @apply bg-bg font-serif text-[16px] text-ink antialiased;
+  font-feature-settings: "kern", "liga", "onum" 0;
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgb(var(--accent) / 0.25);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--ink) / 0.25) transparent;
+}
+
+a {
+  @apply text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent;
+}
+
+@layer components {
+  /* A bordered region. Hairline, no shadow, no radius. */
+  .surface {
+    @apply border;
+    border-color: rgb(var(--rule));
+    background: transparent;
+  }
+  .surface-solid {
+    @apply border bg-elev;
+    border-color: rgb(var(--rule));
+  }
+  .hairline {
+    border-color: rgb(var(--rule));
+  }
+  /* A report section: heavy ink rule on top, no box. */
+  .section-rule {
+    @apply pt-3;
+    border-top: 1.5px solid rgb(var(--ink));
+  }
+  /* Section label: plain sentence case, serif italic. */
+  .eyebrow {
+    @apply text-[13px] italic text-faint;
+  }
+  .num {
+    @apply font-mono tabular-nums;
+  }
+  .focus-ring {
+    @apply outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
+  }
+  .btn {
+    @apply focus-ring inline-flex items-center justify-center gap-2 px-4 py-2 text-sm transition-colors duration-150;
+  }
+  .btn-primary {
+    @apply btn border border-ink bg-ink text-bg hover:bg-accent hover:border-accent disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .btn-ghost {
+    @apply btn border text-dim hover:border-ink/50 hover:text-ink;
+    border-color: rgb(var(--rule));
+  }
+
+  /* Ledger: bordered table, hairline rules between rows, mono numerals. */
+  .ledger {
+    @apply w-full border-collapse text-[14px];
+    border-top: 1.5px solid rgb(var(--ink));
+    border-bottom: 1px solid rgb(var(--ink));
+  }
+  .ledger caption {
+    @apply pb-2 text-left text-[13px] italic text-faint;
+  }
+  .ledger th {
+    @apply px-3 py-2 text-left text-[13px] font-normal italic text-dim;
+    border-bottom: 1px solid rgb(var(--rule));
+  }
+  .ledger td {
+    @apply px-3 py-2 align-baseline;
+    border-bottom: 1px solid rgb(var(--rule));
+  }
+  .ledger tbody tr:last-child td {
+    border-bottom: 0;
+  }
+  .ledger .text-right {
+    text-align: right;
+  }
+  .ledger .text-center {
+    text-align: center;
+  }
+  .ledger .n {
+    @apply font-mono tabular-nums;
+    text-align: right;
+  }
+  .ledger tbody tr:hover {
+    background: rgb(var(--ink) / 0.03);
+  }
+
+  .prose-answer {
+    @apply text-[15.5px] leading-[1.65] text-ink;
+  }
+  .prose-answer h1,
+  .prose-answer h2,
+  .prose-answer h3 {
+    @apply mb-1 mt-4 text-[14px] font-semibold italic text-dim first:mt-0;
+  }
+  .prose-answer p {
+    @apply my-2;
+  }
+  .prose-answer ul {
+    @apply my-2 list-disc space-y-1 pl-5 marker:text-faint;
+  }
+  .prose-answer ol {
+    @apply my-2 list-decimal space-y-1 pl-5 marker:text-faint;
+  }
+  .prose-answer strong {
+    @apply font-semibold text-ink;
+  }
+  .prose-answer code {
+    @apply bg-ink/10 px-1 py-0.5 font-mono text-[13px];
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

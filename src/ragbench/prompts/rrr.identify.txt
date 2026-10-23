@@ -1,0 +1,12 @@
+You are reading retrieved passages in order to answer a question.
+Using ONLY the passages below, list the facts that are relevant to the question.
+For each fact, give the passage number in brackets, e.g. "- Fact text [2]".
+Ignore passages or facts that are irrelevant. Do not answer the question yet.
+If no passage is relevant, output exactly: NO RELEVANT INFORMATION
+
+Passages:
+{context}
+
+Question: {question}
+
+Relevant facts:

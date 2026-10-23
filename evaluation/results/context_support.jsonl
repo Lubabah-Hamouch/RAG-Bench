@@ -1,0 +1,9 @@
+{"qid": "Q02", "supported": [true, true], "recall": 1.0, "judge_tokens": 975}
+{"qid": "Q03", "supported": [false, true, true, false], "recall": 0.5, "judge_tokens": 879}
+{"qid": "Q05", "supported": [true, true], "recall": 1.0, "judge_tokens": 797}
+{"qid": "Q06", "supported": [true, true, true], "recall": 1.0, "judge_tokens": 822}
+{"qid": "Q08", "supported": [true, true, false], "recall": 0.6666666666666666, "judge_tokens": 730}
+{"qid": "Q09", "supported": [false, true, true, false], "recall": 0.5, "judge_tokens": 785}
+{"qid": "Q10", "supported": [true, true, true, true], "recall": 1.0, "judge_tokens": 910}
+{"qid": "Q11", "supported": [true, false, false], "recall": 0.3333333333333333, "judge_tokens": 911}
+{"qid": "Q12", "supported": [true, true, false], "recall": 0.6666666666666666, "judge_tokens": 864}

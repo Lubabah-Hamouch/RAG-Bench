@@ -1,0 +1,18 @@
+Revise the initial answer by applying the critique.
+Remove or correct every claim flagged as unsupported or incorrect, add any missing information that is present in the context,
+and keep everything that was supported. Use ONLY the context and never guess. Output only the revised answer, with no preamble.
+If the critique says "No changes needed", repeat the initial answer.
+If the critique says "Answerable from context: No", or no supported claim would remain, reply exactly: "The provided context does not contain this information."
+
+Context:
+{context}
+
+Question: {question}
+
+Initial answer:
+{stage1_output}
+
+Critique:
+{stage2_output}
+
+Revised answer:

@@ -1,0 +1,1080 @@
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "RAGBench API",
+  "description": "Replay of the recorded benchmark, plus live runs with your own Groq key.",
+  "version": "0.1.0"
+ },
+ "paths": {
+  "/api/health": {
+   "get": {
+    "summary": "Health",
+    "operationId": "health_api_health_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HealthOut"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/strategies": {
+   "get": {
+    "summary": "Strategies",
+    "operationId": "strategies_api_strategies_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/StrategyInfo"
+         },
+         "type": "array",
+         "title": "Response Strategies Api Strategies Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/questions": {
+   "get": {
+    "summary": "Questions",
+    "operationId": "questions_api_questions_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/QuestionOut"
+         },
+         "type": "array",
+         "title": "Response Questions Api Questions Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/results/summary": {
+   "get": {
+    "summary": "Summary",
+    "operationId": "summary_api_results_summary_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/results/{qid}": {
+   "get": {
+    "summary": "Result",
+    "operationId": "result_api_results__qid__get",
+    "parameters": [
+     {
+      "name": "qid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Qid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/QuestionResultOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/live/validate": {
+   "post": {
+    "summary": "Validate",
+    "operationId": "validate_api_live_validate_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ValidateOut"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/run": {
+   "post": {
+    "summary": "Run",
+    "operationId": "run_api_run_post",
+    "parameters": [
+     {
+      "name": "stream",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "description": "Server-sent events (default) or one JSON reply.",
+       "default": true,
+       "title": "Stream"
+      },
+      "description": "Server-sent events (default) or one JSON reply."
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RunRequest"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "AnswerOut": {
+    "properties": {
+     "strategy": {
+      "type": "string",
+      "title": "Strategy"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "uses_retrieval": {
+      "type": "boolean",
+      "title": "Uses Retrieval"
+     },
+     "answer": {
+      "type": "string",
+      "title": "Answer"
+     },
+     "critique": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Critique"
+     },
+     "trace": {
+      "items": {
+       "$ref": "#/components/schemas/StageOut"
+      },
+      "type": "array",
+      "title": "Trace",
+      "default": []
+     },
+     "abstained": {
+      "type": "boolean",
+      "title": "Abstained"
+     },
+     "trial": {
+      "type": "integer",
+      "title": "Trial",
+      "default": 0
+     },
+     "metrics": {
+      "$ref": "#/components/schemas/MetricsOut"
+     },
+     "other_trials": {
+      "items": {
+       "$ref": "#/components/schemas/TrialAnswerOut"
+      },
+      "type": "array",
+      "title": "Other Trials",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "strategy",
+     "label",
+     "uses_retrieval",
+     "answer",
+     "abstained",
+     "metrics"
+    ],
+    "title": "AnswerOut"
+   },
+   "ChunkOut": {
+    "properties": {
+     "rank": {
+      "type": "integer",
+      "title": "Rank"
+     },
+     "similarity": {
+      "type": "number",
+      "title": "Similarity"
+     },
+     "chunk_id": {
+      "type": "string",
+      "title": "Chunk Id"
+     },
+     "doc_id": {
+      "type": "string",
+      "title": "Doc Id"
+     },
+     "doc_title": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Doc Title"
+     },
+     "role": {
+      "type": "string",
+      "title": "Role"
+     },
+     "page": {
+      "type": "integer",
+      "title": "Page"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     }
+    },
+    "type": "object",
+    "required": [
+     "rank",
+     "similarity",
+     "chunk_id",
+     "doc_id",
+     "role",
+     "page",
+     "text"
+    ],
+    "title": "ChunkOut"
+   },
+   "ClaimOut": {
+    "properties": {
+     "text": {
+      "type": "string",
+      "title": "Text"
+     },
+     "label": {
+      "type": "string",
+      "enum": [
+       "supported",
+       "unsupported",
+       "contradicted"
+      ],
+      "title": "Label"
+     },
+     "reason": {
+      "type": "string",
+      "title": "Reason",
+      "default": ""
+     },
+     "evidence_passage": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Evidence Passage"
+     }
+    },
+    "type": "object",
+    "required": [
+     "text",
+     "label"
+    ],
+    "title": "ClaimOut"
+   },
+   "ConsistencyOut": {
+    "properties": {
+     "semantic": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Semantic"
+     },
+     "structural": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Structural"
+     },
+     "n_samples": {
+      "type": "integer",
+      "title": "N Samples"
+     }
+    },
+    "type": "object",
+    "required": [
+     "semantic",
+     "structural",
+     "n_samples"
+    ],
+    "title": "ConsistencyOut",
+    "description": "Replay only: needs several trials of the same question."
+   },
+   "CoverageOut": {
+    "properties": {
+     "C": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "C"
+     },
+     "covered": {
+      "items": {
+       "type": "boolean"
+      },
+      "type": "array",
+      "title": "Covered"
+     },
+     "gold_facts": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Gold Facts"
+     }
+    },
+    "type": "object",
+    "required": [
+     "C",
+     "covered",
+     "gold_facts"
+    ],
+    "title": "CoverageOut"
+   },
+   "GoldFactOut": {
+    "properties": {
+     "text": {
+      "type": "string",
+      "title": "Text"
+     },
+     "doc_id": {
+      "type": "string",
+      "title": "Doc Id"
+     },
+     "page": {
+      "type": "integer",
+      "title": "Page"
+     }
+    },
+    "type": "object",
+    "required": [
+     "text",
+     "doc_id",
+     "page"
+    ],
+    "title": "GoldFactOut"
+   },
+   "GroundednessOut": {
+    "properties": {
+     "G": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "G"
+     },
+     "H": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "H"
+     },
+     "X": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "X"
+     },
+     "n_claims": {
+      "type": "integer",
+      "title": "N Claims"
+     },
+     "n_supported": {
+      "type": "integer",
+      "title": "N Supported"
+     },
+     "n_unsupported": {
+      "type": "integer",
+      "title": "N Unsupported"
+     },
+     "n_contradicted": {
+      "type": "integer",
+      "title": "N Contradicted"
+     },
+     "abstained": {
+      "type": "boolean",
+      "title": "Abstained"
+     },
+     "claims": {
+      "items": {
+       "$ref": "#/components/schemas/ClaimOut"
+      },
+      "type": "array",
+      "title": "Claims"
+     }
+    },
+    "type": "object",
+    "required": [
+     "G",
+     "H",
+     "X",
+     "n_claims",
+     "n_supported",
+     "n_unsupported",
+     "n_contradicted",
+     "abstained",
+     "claims"
+    ],
+    "title": "GroundednessOut"
+   },
+   "HTTPValidationError": {
+    "properties": {
+     "detail": {
+      "items": {
+       "$ref": "#/components/schemas/ValidationError"
+      },
+      "type": "array",
+      "title": "Detail"
+     }
+    },
+    "type": "object",
+    "title": "HTTPValidationError"
+   },
+   "HealthOut": {
+    "properties": {
+     "status": {
+      "type": "string",
+      "const": "ok",
+      "title": "Status"
+     },
+     "replay_available": {
+      "type": "boolean",
+      "title": "Replay Available"
+     },
+     "questions": {
+      "type": "integer",
+      "title": "Questions"
+     },
+     "models": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object",
+      "title": "Models"
+     },
+     "require_https": {
+      "type": "boolean",
+      "title": "Require Https"
+     },
+     "live_ready": {
+      "type": "boolean",
+      "title": "Live Ready"
+     },
+     "live_error": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Live Error"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status",
+     "replay_available",
+     "questions",
+     "models",
+     "require_https",
+     "live_ready"
+    ],
+    "title": "HealthOut"
+   },
+   "LexicalOut": {
+    "properties": {
+     "chars": {
+      "type": "integer",
+      "title": "Chars"
+     },
+     "words": {
+      "type": "integer",
+      "title": "Words"
+     },
+     "sentences": {
+      "type": "integer",
+      "title": "Sentences"
+     },
+     "unique_vocab": {
+      "type": "integer",
+      "title": "Unique Vocab"
+     },
+     "avg_word_length": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Avg Word Length"
+     },
+     "words_per_sentence": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Words Per Sentence"
+     },
+     "ttr": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ttr"
+     },
+     "mattr": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mattr"
+     }
+    },
+    "type": "object",
+    "required": [
+     "chars",
+     "words",
+     "sentences",
+     "unique_vocab"
+    ],
+    "title": "LexicalOut"
+   },
+   "MetricsOut": {
+    "properties": {
+     "judged": {
+      "type": "boolean",
+      "title": "Judged"
+     },
+     "groundedness": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/GroundednessOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "coverage": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/CoverageOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "fcs": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Fcs"
+     },
+     "lexical": {
+      "$ref": "#/components/schemas/LexicalOut"
+     },
+     "latency_s": {
+      "type": "number",
+      "title": "Latency S"
+     },
+     "prompt_tokens": {
+      "type": "integer",
+      "title": "Prompt Tokens"
+     },
+     "completion_tokens": {
+      "type": "integer",
+      "title": "Completion Tokens"
+     },
+     "calls": {
+      "type": "integer",
+      "title": "Calls"
+     },
+     "cost_usd": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cost Usd"
+     },
+     "judge_tokens": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Judge Tokens"
+     },
+     "judge_cost_usd": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Judge Cost Usd"
+     },
+     "consistency": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ConsistencyOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "judged",
+     "lexical",
+     "latency_s",
+     "prompt_tokens",
+     "completion_tokens",
+     "calls"
+    ],
+    "title": "MetricsOut"
+   },
+   "QuestionOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "type": {
+      "type": "string",
+      "enum": [
+       "lookup",
+       "multi_hop",
+       "out_of_corpus",
+       "free_text"
+      ],
+      "title": "Type"
+     },
+     "question": {
+      "type": "string",
+      "title": "Question"
+     },
+     "expected_abstain": {
+      "type": "boolean",
+      "title": "Expected Abstain",
+      "default": false
+     },
+     "gold_facts": {
+      "items": {
+       "$ref": "#/components/schemas/GoldFactOut"
+      },
+      "type": "array",
+      "title": "Gold Facts",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "type",
+     "question"
+    ],
+    "title": "QuestionOut"
+   },
+   "QuestionResultOut": {
+    "properties": {
+     "mode": {
+      "type": "string",
+      "enum": [
+       "replay",
+       "live"
+      ],
+      "title": "Mode"
+     },
+     "n_trials": {
+      "type": "integer",
+      "title": "N Trials"
+     },
+     "judged_trials": {
+      "type": "integer",
+      "title": "Judged Trials"
+     },
+     "models": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object",
+      "title": "Models"
+     },
+     "question": {
+      "$ref": "#/components/schemas/QuestionOut"
+     },
+     "retrieval": {
+      "$ref": "#/components/schemas/RetrievalOut"
+     },
+     "answers": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/AnswerOut"
+      },
+      "type": "object",
+      "title": "Answers"
+     }
+    },
+    "type": "object",
+    "required": [
+     "mode",
+     "n_trials",
+     "judged_trials",
+     "models",
+     "question",
+     "retrieval",
+     "answers"
+    ],
+    "title": "QuestionResultOut"
+   },
+   "RetrievalOut": {
+    "properties": {
+     "chunks": {
+      "items": {
+       "$ref": "#/components/schemas/ChunkOut"
+      },
+      "type": "array",
+      "title": "Chunks"
+     },
+     "context_recall_judge": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Context Recall Judge"
+     }
+    },
+    "type": "object",
+    "required": [
+     "chunks"
+    ],
+    "title": "RetrievalOut",
+    "description": "The top-k passages, retrieved once and shared by every strategy."
+   },
+   "RunRequest": {
+    "properties": {
+     "question": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Question"
+     },
+     "question_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Question Id"
+     },
+     "score": {
+      "type": "boolean",
+      "title": "Score",
+      "default": true
+     }
+    },
+    "type": "object",
+    "title": "RunRequest"
+   },
+   "StageOut": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "text"
+    ],
+    "title": "StageOut"
+   },
+   "StrategyInfo": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "uses_retrieval": {
+      "type": "boolean",
+      "title": "Uses Retrieval"
+     },
+     "calls": {
+      "type": "integer",
+      "title": "Calls"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "label",
+     "uses_retrieval",
+     "calls"
+    ],
+    "title": "StrategyInfo"
+   },
+   "TrialAnswerOut": {
+    "properties": {
+     "trial": {
+      "type": "integer",
+      "title": "Trial"
+     },
+     "answer": {
+      "type": "string",
+      "title": "Answer"
+     }
+    },
+    "type": "object",
+    "required": [
+     "trial",
+     "answer"
+    ],
+    "title": "TrialAnswerOut"
+   },
+   "ValidateOut": {
+    "properties": {
+     "valid": {
+      "type": "boolean",
+      "title": "Valid"
+     },
+     "generator_model": {
+      "type": "string",
+      "title": "Generator Model"
+     },
+     "generator_available": {
+      "type": "boolean",
+      "title": "Generator Available"
+     },
+     "judge_model": {
+      "type": "string",
+      "title": "Judge Model"
+     },
+     "judge_available": {
+      "type": "boolean",
+      "title": "Judge Available"
+     },
+     "message": {
+      "type": "string",
+      "title": "Message"
+     }
+    },
+    "type": "object",
+    "required": [
+     "valid",
+     "generator_model",
+     "generator_available",
+     "judge_model",
+     "judge_available",
+     "message"
+    ],
+    "title": "ValidateOut"
+   },
+   "ValidationError": {
+    "properties": {
+     "loc": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        }
+       ]
+      },
+      "type": "array",
+      "title": "Location"
+     },
+     "msg": {
+      "type": "string",
+      "title": "Message"
+     },
+     "type": {
+      "type": "string",
+      "title": "Error Type"
+     },
+     "input": {
+      "title": "Input"
+     },
+     "ctx": {
+      "type": "object",
+      "title": "Context"
+     }
+    },
+    "type": "object",
+    "required": [
+     "loc",
+     "msg",
+     "type"
+    ],
+    "title": "ValidationError"
+   }
+  }
+ }
+}

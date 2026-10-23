@@ -1,0 +1,16 @@
+You are checking claims against source passages. Use ONLY the passages. Ignore your own world knowledge.
+
+Passages:
+{context}
+
+Claims:
+{numbered_claims}
+
+For each claim choose one label:
+- "supported": the passages state it explicitly or it follows directly from them.
+- "contradicted": the passages state something incompatible with it.
+- "unsupported": the passages neither state nor imply it (even if it is true in the real world).
+
+Return JSON only, with exactly one verdict per claim:
+{"verdicts": [{"claim_id": 1, "label": "supported|contradicted|unsupported", "evidence_passage": 2, "reason": "<=25 words"}]}
+Use null for evidence_passage when no passage is relevant.

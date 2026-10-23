@@ -1,0 +1,67 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ragbench"
+version = "0.0.1"
+description = "Side-by-side evaluation of RAG generation strategies with claim-level groundedness scoring."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pymupdf>=1.24",
+    "pypdf>=5",
+    "fonttools>=4.50",       # lets pypdf decode CFF Type1 fonts (else it emits garbled text)
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "pyyaml>=6",
+    "python-dotenv>=1",
+]
+
+# Heavy dependencies are optional extras so each phase installs only what it needs.
+[project.optional-dependencies]
+retrieval = [
+    "chromadb>=0.5",
+    "sentence-transformers>=3",
+    "numpy>=1.26",
+    "langchain-text-splitters>=0.2",
+]
+llm = ["openai>=1.30", "diskcache>=5"]
+eval = ["pysbd>=0.3", "scipy>=1.11", "scikit-learn>=1.4", "matplotlib>=3.8"]
+api = ["fastapi>=0.110", "uvicorn[standard]>=0.29", "sse-starlette>=2"]
+dev = ["pytest>=8", "ruff>=0.4", "mypy>=1.10", "types-PyYAML"]
+
+[project.scripts]
+ragbench = "ragbench.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ragbench"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "slow: loads the real embedding model (downloads ~90 MB on first run)",
+    "live: calls the real Groq API; skipped unless RAGBENCH_LIVE=1 and a key is configured",
+]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "scripts"]
+extend-exclude = ["*.ipynb"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"evaluation/*.py" = ["E501"]  # experiment scripts embed long prompt strings
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src"]
+
+[[tool.mypy.overrides]]
+module = ["pysbd", "scipy", "scipy.*", "sklearn", "sklearn.*"]
+ignore_missing_imports = true

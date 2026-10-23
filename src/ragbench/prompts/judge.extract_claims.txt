@@ -1,0 +1,11 @@
+Decompose the answer into atomic factual claims.
+Rules:
+- Each claim is one short, self-contained sentence. Resolve pronouns so it makes sense alone.
+- Include only factual assertions about the world or the documents.
+- Exclude opinions, meta-commentary about the answer or the context (for example "according to the context", "the context does not say..."), hedges, and restatements of the question.
+- If the answer makes no factual claims (for example it declines to answer), return an empty list.
+
+Question: {question}
+Answer: {answer}
+
+Return JSON only: {"claims": ["...", "..."]}

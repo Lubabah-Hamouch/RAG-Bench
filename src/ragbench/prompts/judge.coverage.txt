@@ -1,0 +1,10 @@
+Decide whether the answer states each gold fact. A paraphrase counts; a vague or partial mention does not.
+
+Question: {question}
+Answer: {answer}
+
+Gold facts:
+{numbered_gold_facts}
+
+Return JSON only, with exactly one entry per gold fact:
+{"coverage": [{"fact_id": 1, "covered": true}]}

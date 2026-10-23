@@ -1,0 +1,33 @@
+# Experiment settings. Environment variables (see .env.example) hold models and keys.
+retrieval:
+  embedding_model: all-MiniLM-L6-v2
+  chunk_chars: 600
+  chunk_overlap: 50
+  top_k: 4
+  distance: cosine
+
+generation:
+  temperature: 0.5      # > 0 so that repeated trials can differ (needed for consistency)
+  max_tokens: 700
+
+judge:
+  temperature: 0.0
+  max_tokens: 1500       # starting budget; hidden reasoning shares it (see config.py)
+  max_tokens_cap: 6000
+  max_retries: 2
+
+metrics:
+  mattr_window: 25
+
+benchmark:
+  n_trials: 2           # reduced from 5 -> 3 -> 2 to fit the free tier (see ARCHITECTURE_PLAN 4.8)
+  judge_trials: 1       # only trial 0 is judged; consistency uses all trials but needs no judge
+  bootstrap_resamples: 10000
+  seed: 20251209
+
+paths:
+  corpus_dir: data/corpus
+  corpus_manifest: data/corpus/manifest.yaml
+  processed_dir: data/processed
+  chroma_dir: data/chroma
+  questions: data/questions.yaml

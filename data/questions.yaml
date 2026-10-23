@@ -1,0 +1,200 @@
+description: Benchmark questions. Every gold fact carries a verbatim quote from the cleaned corpus (checked
+  by tests).
+questions:
+- id: Q02
+  type: lookup
+  question: What is the difference between RAG-Sequence and RAG-Token?
+  gold_facts:
+  - text: RAG-Sequence uses the same retrieved document to generate the complete output sequence.
+    doc_id: lewis2020_rag
+    page: 3
+    quote: The RAG-Sequence model uses the same retrieved document to generate the complete sequence
+  - text: RAG-Token can draw a different latent document for each target token, so the generator can combine
+      content from several documents.
+    doc_id: lewis2020_rag
+    page: 3
+    quote: we can draw a different latent document for each target token
+- id: Q03
+  type: lookup
+  question: Which reflection tokens does Self-RAG use, and what does each one assess?
+  gold_facts:
+  - text: The Retrieve token decides when to retrieve passages.
+    doc_id: asai2023_selfrag
+    page: 4
+    quote: Decides when to retrieve with R
+  - text: ISREL assesses whether a retrieved passage is relevant, i.e. provides useful information to
+      solve the input.
+    doc_id: asai2023_selfrag
+    page: 4
+    quote: d provides useful information to solve x
+  - text: ISSUP assesses whether the statements in the output are supported by the passage (fully, partially
+      or not supported).
+    doc_id: asai2023_selfrag
+    page: 4
+    quote: is supported by d.
+  - text: ISUSE rates how useful the output is as a response to the input, on a 1 to 5 scale.
+    doc_id: asai2023_selfrag
+    page: 4
+    quote: y is a useful response to x
+- id: Q05
+  type: lookup
+  question: In DSPy Assertions, what is the difference between Assert and Suggest?
+  gold_facts:
+  - text: 'Assert is a hard constraint: if still violated after the maximum number of retries, the pipeline
+      halts.'
+    doc_id: singhvi2023_dspy_assertions
+    page: 2
+    quote: Hard assertions represent critical conditions that, when violated after a maximum number of
+      retries, cause the LM pipeline to halt
+  - text: 'Suggest is a soft constraint: a violation triggers self-refinement, but exceeding the maximum
+      retries does not halt the pipeline, which continues to the next module.'
+    doc_id: singhvi2023_dspy_assertions
+    page: 2
+    quote: exceeding a maximum number of retries does not halt the pipeline
+- id: Q06
+  type: lookup
+  question: What is a vector database and how does it differ from a traditional database?
+  gold_facts:
+  - text: A vector database indexes and stores vector embeddings for fast retrieval and similarity search.
+    doc_id: pinecone_vector_db
+    page: 1
+    quote: A vector database indexes and stores vector embeddings for fast retrieval and similarity search
+  - text: Traditional scalar-based databases cannot keep up with the complexity and scale of vector data.
+    doc_id: pinecone_vector_db
+    page: 2
+    quote: traditional scalar-based databases can’t keep up with the complexity and scale of such data
+  - text: A vector database has the capabilities of a traditional database that standalone vector indexes
+      lack, plus specialization for vector embeddings.
+    doc_id: pinecone_vector_db
+    page: 2
+    quote: Vector databases have the capabilities of a traditional database that are absent in standalone
+      vector indexes
+- id: Q08
+  type: lookup
+  question: What is LangChain and what does it help developers build?
+  gold_facts:
+  - text: LangChain is a framework for building agents and applications powered by LLMs.
+    doc_id: langchain_overview
+    page: 1
+    quote: LangChain is the easiest way to start building agents and applications powered by LLMs
+  - text: It provides a pre-built agent architecture and model integrations.
+    doc_id: langchain_overview
+    page: 1
+    quote: LangChain provides a pre-built agent architecture and model integrations
+  - text: It standardizes the interface to model providers so developers can swap providers and avoid
+      lock-in.
+    doc_id: langchain_overview
+    page: 2
+    quote: LangChain standardizes how you interact with models so that you can seamlessly swap providers
+      and avoid lock-in
+- id: Q09
+  type: multi_hop
+  question: How do the original RAG model and Self-RAG differ in deciding when and what to retrieve?
+  gold_facts:
+  - text: The original RAG model retrieves the top-K documents for a query using Maximum Inner Product
+      Search (MIPS).
+    doc_id: lewis2020_rag
+    page: 2
+    quote: we use Maximum Inner Product Search (MIPS) to find the top-K documents
+  - text: 'Self-RAG decides when to retrieve: the model predicts a Retrieve token and retrieves only if
+      it says yes.'
+    doc_id: asai2023_selfrag
+    page: 4
+    quote: M predicts Retrieve given (x, y<t)
+  - text: Self-RAG avoids indiscriminately retrieving a fixed number of passages regardless of whether
+      retrieval is necessary.
+    doc_id: asai2023_selfrag
+    page: 1
+    quote: indiscriminately retrieving and incorporating a fixed number of retrieved passages, regardless
+      of whether retrieval is necessary
+  - text: Self-RAG judges the relevance of each retrieved passage with the ISREL token.
+    doc_id: asai2023_selfrag
+    page: 4
+    quote: M predicts ISREL given x, d
+- id: Q10
+  type: multi_hop
+  question: Both Self-RAG and DSPy Assertions let a system improve an output after a first attempt. How
+    do the mechanisms differ?
+  gold_facts:
+  - text: Self-RAG trains the LM to generate special reflection tokens that critique retrieved passages
+      and its own generations.
+    doc_id: asai2023_selfrag
+    page: 1
+    quote: generates and reflects on retrieved passages and its own generations using special tokens,
+      called reflection tokens
+  - text: Self-RAG ranks candidate outputs using the ISREL, ISSUP and ISUSE critique tokens.
+    doc_id: asai2023_selfrag
+    page: 4
+    quote: Rank yt based on ISREL , ISSUP , ISUSE
+  - text: DSPy Assertions are programmer-declared constraints of two types, hard Assert and soft Suggest.
+    doc_id: singhvi2023_dspy_assertions
+    page: 2
+    quote: 'We propose two types of LM Assertions: (hard) Assertions and (soft) Suggestions'
+  - text: When a constraint fails, DSPy backtracks to the failing module and retries, with the prompt
+      including past attempts and messages.
+    doc_id: singhvi2023_dspy_assertions
+    page: 4
+    quote: allow the pipeline to backtrack to the failing module and try again
+- id: Q11
+  type: multi_hop
+  question: How does the vector search described in the Pinecone article relate to the retriever used
+    in the original RAG model?
+  gold_facts:
+  - text: The original RAG retriever (DPR) provides latent documents conditioned on the input.
+    doc_id: lewis2020_rag
+    page: 2
+    quote: The retriever (Dense Passage Retriever [26], henceforth DPR) provides latent documents conditioned
+      on the input
+  - text: RAG finds the top-K documents with Maximum Inner Product Search (MIPS), a nearest-neighbour
+      search over an index of document vectors.
+    doc_id: lewis2020_rag
+    page: 2
+    quote: we use Maximum Inner Product Search (MIPS) to find the top-K documents
+  - text: The Pinecone article describes querying a vector database as comparing the query vector to the
+      indexed vectors to find the nearest neighbors with a similarity metric.
+    doc_id: pinecone_vector_db
+    page: 5
+    quote: The vector database compares the indexed query vector to the indexed vectors in the dataset
+      to find the nearest neighbors
+- id: Q12
+  type: multi_hop
+  question: Which approaches in these documents aim to reduce factual errors in language models, and how
+    does each work?
+  gold_facts:
+  - text: RAG combines the model's parametric memory with non-parametric memory, retrieving external documents
+      to ground generation.
+    doc_id: lewis2020_rag
+    page: 2
+    quote: hybrid parametric and non-parametric memory
+  - text: Self-RAG improves quality and factuality by retrieving on demand and reflecting on passages
+      and its own output with reflection tokens.
+    doc_id: asai2023_selfrag
+    page: 1
+    quote: enhances an LM’s quality and factuality
+  - text: DSPy Assertions constrain LM outputs; a violated constraint triggers backtracking and self-refinement.
+    doc_id: singhvi2023_dspy_assertions
+    page: 2
+    quote: their violation triggers the self-refinement process
+- id: Q13
+  type: out_of_corpus
+  question: What results did Self-RAG report on the Llama 3 model family?
+  expected_abstain: true
+  gold_facts: []
+  notes: 'Unanswerable: the corpus never mentions Llama 3 (verified by searching every document). Self-RAG
+    predates it.'
+dropped_questions:
+- id: Q01
+  type: lookup
+  question: What are the parametric and non-parametric memory components of the RAG model?
+  reason: Same paper as kept Q02; its top-4 mixes in Self-RAG chunks; its content is covered by kept multi-hop
+    Q09/Q12.
+- id: Q04
+  type: lookup
+  question: Why does Self-RAG retrieve on demand instead of always retrieving a fixed number of passages?
+  reason: Same paper as kept Q03; top-4 mixes in Lewis chunks and shares a chunk with Q09; it is the core
+    of multi-hop Q09.
+- id: Q07
+  type: lookup
+  question: What is Weaviate?
+  reason: Most definitional question over a 6-page document with essentially one gold fact, so coverage
+    would be binary and uninformative.

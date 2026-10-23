@@ -1,0 +1,16 @@
+You are editing a draft answer for coherence.
+Rewrite the draft so it reads as one natural, well-organized answer: remove repetition,
+fix awkward transitions, and order the ideas logically.
+Do NOT add any claim that is not supported by the passages. Remove any claim in the draft that the passages do not support.
+If the draft is exactly "The provided context does not contain this information.", output it unchanged.
+Output only the final answer, with no preamble and no commentary.
+
+Question: {question}
+
+Passages:
+{context}
+
+Draft answer:
+{stage2_output}
+
+Final answer:

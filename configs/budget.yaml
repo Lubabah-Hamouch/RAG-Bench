@@ -1,0 +1,44 @@
+# Inputs to `ragbench budget`. Token profiles are MEASURED from live calls on 2026-10-23
+# (generator qwen/qwen3.8-27b, judge openai/gpt-oss-20b at reasoning_effort=low, 600-char chunks,
+# top-4 retrieval, temperature 0.5). Re-measure if models, prompts or chunk size change.
+#
+# Caveat: the "answerable" profile comes from ONE lookup question (Q05); the "abstain" profile
+# from the out-of-corpus question (Q13). Multi-hop questions will produce longer answers, which is
+# why the projection adds a safety margin (default 25%).
+generator:
+  model: qwen/qwen3.8-27b
+  limits: &groq_limits
+    # Groq docs table (console.groq.com/docs/rate-limits) and the x-ratelimit-* headers seen on this
+    # account agree: 30 requests/min, 1,000 requests/day, 8,000 tokens/min, 200,000 tokens/day,
+    # counted per model. The docs page labels these "base limits for the Developer plan"; the
+    # free-plan tab was not readable, so confirm at console.groq.com/settings/limits.
+    rpm: 30
+    rpd: 1000
+    tpm: 8000
+    tpd: 200000
+
+judge:
+  model: openai/gpt-oss-20b
+  limits: *groq_limits
+
+# Per answer produced. kind: answerable = a question the corpus can answer; abstain = one it cannot.
+generation_per_answer:
+  baseline:
+    answerable: {calls: 1, prompt_tokens: 577, completion_tokens: 31}
+    abstain: {calls: 1, prompt_tokens: 617, completion_tokens: 10}
+  structured:
+    answerable: {calls: 1, prompt_tokens: 630, completion_tokens: 378}
+    abstain: {calls: 1, prompt_tokens: 670, completion_tokens: 27}
+  rrr:
+    answerable: {calls: 3, prompt_tokens: 2090, completion_tokens: 660}
+    abstain: {calls: 3, prompt_tokens: 1949, completion_tokens: 133}
+  self_rag:
+    answerable: {calls: 3, prompt_tokens: 2374, completion_tokens: 631}
+    abstain: {calls: 3, prompt_tokens: 1960, completion_tokens: 97}
+  no_retrieval:
+    answerable: {calls: 1, prompt_tokens: 89, completion_tokens: 61}
+    abstain: {calls: 1, prompt_tokens: 91, completion_tokens: 71}
+
+# Per judged answer (claim extraction + verification + coverage): mean of 5 answers on Q05.
+# completion_tokens includes hidden reasoning (about 430 per answer at effort=low; medium was 5x).
+judge_per_answer: {calls: 3, prompt_tokens: 1617, completion_tokens: 618}

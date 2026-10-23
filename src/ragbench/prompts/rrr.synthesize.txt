@@ -1,0 +1,16 @@
+You are synthesizing an answer from extracted facts.
+Write a draft answer to the question by combining the relevant facts below across passages.
+Merge facts that overlap, and note where passages agree or where information is missing.
+Use ONLY information found in the facts or the passages. Do not add outside knowledge and never guess.
+If the facts say NO RELEVANT INFORMATION, or they are not enough to answer the question, reply exactly: "The provided context does not contain this information."
+If they answer only part of the question, answer that part and state what is missing.
+
+Question: {question}
+
+Relevant facts:
+{stage1_output}
+
+Passages (for verification):
+{context}
+
+Draft answer:

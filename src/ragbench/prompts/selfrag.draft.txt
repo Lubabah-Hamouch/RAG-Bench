@@ -1,0 +1,11 @@
+Answer the question using ONLY the provided context. Be thorough: explain the reasoning that leads from
+the context to your answer. Do not use outside knowledge and never guess.
+If the context does not contain enough information to answer, reply exactly: "The provided context does not contain this information."
+If the context answers only part of the question, answer that part and state what the context does not cover.
+
+Context:
+{context}
+
+Question: {question}
+
+Initial answer:

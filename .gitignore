@@ -1,0 +1,41 @@
+# Secrets: never commit. Real keys live only in .env (local) or the host's secret store.
+.env
+.env.*
+!.env.example
+APIKEY*
+*apikey*
+*.key
+*.pem
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Rebuildable data (the corpus PDFs in data/corpus/ ARE tracked)
+data/chroma/
+data/processed/*
+!data/processed/.gitkeep
+.cache/
+
+# Frontend
+ui/node_modules/
+ui/dist/
+*.tsbuildinfo
+
+# Logs and scratch
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
