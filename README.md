@@ -2,8 +2,6 @@
 
 **Does the way you prompt a RAG generator matter, or is retrieval doing all the work?** RAGBench answers that with a controlled experiment: the *same* retrieved passages go to four generation strategies (Baseline, Structured, RRR, Self-RAG) and a no-retrieval control, and a second, independent model then checks every claim in every answer against those passages. You can see exactly what each strategy gains, and what it invents.
 
-**Live demo:** coming soon. Until then, everything below runs locally, and the recorded benchmark works with no API key at all.
-
 <p align="center">
   <img src="docs/screenshots/explorer-light.png" alt="The Explorer view: pick one of the 10 benchmark questions to compare five answers side by side" width="760">
 </p>
