@@ -3,11 +3,20 @@
 # Lines from the start match up to (not including) the end match are dropped before chunking,
 # so bibliography entries do not pollute retrieval. If `end` is omitted, everything after
 # `start` is dropped.
+#
+# Provenance: `source_url` is where the document came from, `retrieved` is the date of the copy
+# the benchmark was run on (for papers, the date of the pinned arXiv version), `license` is the
+# terms it was obtained under, and `local: true` means the PDF ships in this repo. Every other
+# PDF is not redistributed here: run `python scripts/fetch_corpus.py` to download it.
 documents:
   - id: lewis2020_rag
     file: 2005.11401v4.pdf
     title: "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks (Lewis et al.)"
     role: core
+    source_url: https://arxiv.org/abs/2005.11401
+    retrieved: 2021-04-12
+    license: arXiv non-exclusive
+    local: false
     references:
       start: '^References$'
       end: '^Appendices for Retrieval-Augmented Generation'
@@ -16,6 +25,10 @@ documents:
     file: 2310.11511v1.pdf
     title: "Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection (Asai et al.)"
     role: core
+    source_url: https://arxiv.org/abs/2310.11511
+    retrieved: 2023-10-17
+    license: CC BY 4.0
+    local: true
     references:
       start: '^REFERENCES$'
       end: '^APPENDIX$'
@@ -24,6 +37,10 @@ documents:
     file: 2312.13382v2.pdf
     title: "DSPy Assertions: Computational Constraints for Self-Refining Language Model Pipelines (Singhvi et al.)"
     role: core
+    source_url: https://arxiv.org/abs/2312.13382
+    retrieved: 2024-02-02
+    license: arXiv non-exclusive
+    local: false
     references:
       start: '^References$'
       end: '^A\. Implementation$'
@@ -32,16 +49,28 @@ documents:
     file: "What is a Vector Database & How Does it Work_ Use Cases + Examples _ Pinecone.pdf"
     title: "What is a Vector Database & How Does it Work? (Pinecone)"
     role: core
+    source_url: https://www.pinecone.io/learn/vector-database/
+    retrieved: 2025-12-07
+    license: redistribution restricted, see site terms
+    local: false
 
   - id: weaviate_docs
     file: "Weaviate Database _ Weaviate Documentation.pdf"
     title: "Weaviate Database | Weaviate Documentation (intro page)"
     role: core
+    source_url: https://docs.weaviate.io/weaviate
+    retrieved: 2025-12-07
+    license: redistribution restricted, see site terms
+    local: false
 
   - id: langchain_overview
     file: "LangChain overview - Docs by LangChain.pdf"
     title: "LangChain overview (Docs by LangChain)"
     role: core
+    source_url: https://docs.langchain.com/oss/python/langchain/overview
+    retrieved: 2025-12-07
+    license: redistribution restricted, see site terms
+    local: false
     notes: "Hyperlink labels are absent from the PDF's text layer (blank slots like 'and .')."
 
   # Deliberate retrieval distractor (decision D8): an off-topic point-cloud survey.
@@ -50,5 +79,9 @@ documents:
     file: 2308.12113v5.pdf
     title: "Advancements in Point Cloud Data Augmentation for Deep Learning: A Survey (Zhu et al.)"
     role: distractor
+    source_url: https://arxiv.org/abs/2308.12113
+    retrieved: 2024-04-23
+    license: arXiv non-exclusive
+    local: false
     references:
       start: '^Reference$'   # no end: its appendix holds tables plus a second bibliography

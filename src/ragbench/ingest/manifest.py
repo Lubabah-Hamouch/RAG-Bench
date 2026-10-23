@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 from typing import Literal
 
@@ -21,6 +22,10 @@ class DocumentSpec(BaseModel):
     file: str
     title: str
     role: Literal["core", "distractor"]
+    source_url: str
+    retrieved: date
+    license: str
+    local: bool
     references: ReferenceSpan | None = None
     notes: str | None = None
 

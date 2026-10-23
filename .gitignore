@@ -20,7 +20,9 @@ dist/
 .coverage
 htmlcov/
 
-# Rebuildable data (the corpus PDFs in data/corpus/ ARE tracked)
+# Rebuildable data. Corpus PDFs are fetched by scripts/fetch_corpus.py; only the CC BY Self-RAG paper ships.
+data/corpus/*.pdf
+!data/corpus/2310.11511v1.pdf
 data/chroma/
 data/processed/*
 !data/processed/.gitkeep

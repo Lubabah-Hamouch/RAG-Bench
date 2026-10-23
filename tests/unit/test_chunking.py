@@ -7,7 +7,16 @@ SENTENCE = "Retrieval grounds the generator in documents that can be checked. "
 
 
 def make_doc(pages: dict[int, str], doc_id: str = "doc_a", role: str = "core") -> CleanedDocument:
-    spec = DocumentSpec(id=doc_id, file=f"{doc_id}.pdf", title="Title A", role=role)
+    spec = DocumentSpec(
+        id=doc_id,
+        file=f"{doc_id}.pdf",
+        title="Title A",
+        role=role,
+        source_url="https://example.org",
+        retrieved="2025-12-07",
+        license="test",
+        local=True,
+    )
     return CleanedDocument(spec, "pymupdf", [CleanPage(n, t) for n, t in pages.items()])
 
 

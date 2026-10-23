@@ -46,6 +46,7 @@ You need Python 3.11+ and Node 18+. Developed and tested on Windows; the command
 python -m venv .venv
 source .venv/bin/activate            # Windows: .venv\Scripts\Activate.ps1
 pip install -e ".[dev,retrieval,llm,eval,api]"
+python scripts/fetch_corpus.py       # download the corpus PDFs (see the note below)
 ragbench ingest                      # chunk the corpus and build the local index (downloads a ~90 MB model once)
 ragbench serve                       # API on http://127.0.0.1:8000, docs at /docs
 ```
@@ -58,6 +59,7 @@ npm install
 npm run dev                          # UI on http://localhost:5173
 ```
 
+- **Corpus:** only the CC BY Self-RAG paper ships in `data/corpus/`. The other six documents (three papers under arXiv's licence, three vendor doc pages whose terms restrict redistribution) are fetched from their original URLs by `scripts/fetch_corpus.py`, which reads `data/corpus/manifest.yaml`. Required before `ragbench ingest` or the tests. arXiv papers are fetched at the pinned version; the three web pages are printed to PDF with a local Chrome or Edge (`--browser PATH` if it isn't found) and may have changed since the 2025-12-07 snapshot the recorded results used.
 - **No keys needed to explore.** The recorded benchmark is bundled in `ui/public/replay/`, so the Explorer, Benchmark and Method views work without the backend or any key.
 - **Live mode** needs the API running and a Groq key pasted into the UI. A fully scored run is about 20,000 tokens. The server has no key of its own.
 - **Port 8000 busy?** Run `ragbench serve --port 8001` and start the UI with `VITE_API_URL=http://127.0.0.1:8001`.
@@ -78,10 +80,10 @@ For depth: the app's **Method** page, [ARCHITECTURE_PLAN.md](ARCHITECTURE_PLAN.m
 - **The judge is an LLM, validated lightly.** On 30 human-labelled claims it agreed 28 times (93%, kappa 0.88). The sample was not randomly drawn, there was one labeller, and coverage and FCS are validated far less than groundedness. All three disagreements found ran against retrieval's advantage, so the headline is probably conservative.
 - **Self-RAG is prompt-emulated.** It is draft, critique and revise with prompts, not the fine-tuned model with learned reflection tokens.
 - **Retrieval limits were investigated, not fixed.** Cross-document questions remain weak by design of the corpus and retriever; the attempted remedies are documented in the plan.
-- **One small corpus, one model pair.** Seven PDFs, and results may not transfer to other models or domains.
+- **One small corpus, one model pair.** Seven documents, and results may not transfer to other models or domains.
 
 ## Credits
 
 Built as a rebuild of a Master's (M2DS) coursework project comparing RAG generation strategies. The original compared strategies on surface statistics such as answer length; this version measures whether each claim is actually supported.
 
-Released under the [MIT License](LICENSE). Never commit keys: `.env` is gitignored and a test scans for key-shaped strings.
+Released under the [MIT License](LICENSE); third-party material is listed in [NOTICE](NOTICE). Never commit keys: `.env` is gitignored and a test scans for key-shaped strings.

@@ -24,6 +24,11 @@ def load_cleaned_documents(root: Path | None = None) -> list[CleanedDocument]:
     manifest = load_manifest(corpus_dir / "manifest.yaml")
     docs = []
     for spec in manifest.documents:
-        raw_pages, extractor = extract_pdf(corpus_dir / spec.file)
+        path = corpus_dir / spec.file
+        if not path.exists():
+            raise FileNotFoundError(
+                f"{path} is missing. Run `python scripts/fetch_corpus.py` to download the corpus."
+            )
+        raw_pages, extractor = extract_pdf(path)
         docs.append(CleanedDocument(spec, extractor, clean_pages(raw_pages, spec.references)))
     return docs

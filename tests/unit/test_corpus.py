@@ -26,10 +26,22 @@ MUST_CONTAIN = {
 }
 
 
+def _require_fetched(spec):
+    if not (CORPUS / spec.file).exists():
+        pytest.skip(f"{spec.file} not fetched; run python scripts/fetch_corpus.py")
+
+
 def test_every_pdf_in_corpus_dir_is_in_manifest():
     listed = {d.file for d in MANIFEST.documents}
     on_disk = {p.name for p in CORPUS.glob("*.pdf")}
-    assert on_disk == listed
+    assert on_disk <= listed
+
+
+def test_local_files_ship_in_the_repo():
+    # `local: true` documents must be present; the rest come from scripts/fetch_corpus.py.
+    for spec in MANIFEST.documents:
+        if spec.local:
+            assert (CORPUS / spec.file).exists(), spec.file
 
 
 def test_distractor_is_declared():
@@ -40,6 +52,7 @@ def test_distractor_is_declared():
 
 @pytest.mark.parametrize("spec", MANIFEST.documents, ids=lambda s: s.id)
 def test_document_extracts_clean_text(spec):
+    _require_fetched(spec)
     pages, _ = extract_pdf(CORPUS / spec.file)
     assert has_text_layer(pages)
     text = "\n".join(p.text for p in clean_pages(pages, spec.references))
@@ -56,6 +69,7 @@ def test_document_extracts_clean_text(spec):
     "spec", [d for d in MANIFEST.documents if d.references], ids=lambda s: s.id
 )
 def test_bibliography_removed(spec):
+    _require_fetched(spec)
     pages, _ = extract_pdf(CORPUS / spec.file)
     text = "\n".join(p.text for p in clean_pages(pages, spec.references))
     assert len(re.findall(r"arXiv preprint|URL https?://", text)) <= 2

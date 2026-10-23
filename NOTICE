@@ -1,0 +1,14 @@
+Third-party material
+
+data/corpus/2310.11511v1.pdf
+  "Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection"
+  by Akari Asai, Zeqiu Wu, Yizhong Wang, Avirup Sil and Hannaneh Hajishirzi
+  (arXiv:2310.11511v1, https://arxiv.org/abs/2310.11511).
+  Licensed under Creative Commons Attribution 4.0 International (CC BY 4.0),
+  https://creativecommons.org/licenses/by/4.0/
+  Included unmodified. This file is not covered by the repository's MIT License.
+
+The other corpus documents are not distributed with this repository. They are
+downloaded from their original sources by scripts/fetch_corpus.py and remain the
+property of their authors and publishers; see data/corpus/manifest.yaml for each
+source URL and license.
