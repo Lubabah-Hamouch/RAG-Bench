@@ -210,9 +210,8 @@ def build_router(ctx: AppContext) -> APIRouter:
             free_text = True
 
         ip = client_ip(request, ctx.settings)
-        ok, wait = ctx.run_limiter.check(ip)
-        if not ok:
-            return error_response(429, "rate_limited", "Too many live runs; slow down.", wait)
+        # Busy first: a refused attempt starts no run, so it must not count against the rate limit
+        # (a visitor retrying during someone else's run would otherwise lock themselves out).
         refused = ctx.guard.acquire(ip)
         if refused:
             msg = (
@@ -221,6 +220,10 @@ def build_router(ctx: AppContext) -> APIRouter:
                 else "The server is at capacity; try again shortly."
             )
             return error_response(429 if refused == "run_in_progress" else 503, refused, msg, 5.0)
+        ok, wait = ctx.run_limiter.check(ip)
+        if not ok:
+            ctx.guard.release(ip)
+            return error_response(429, "rate_limited", "Too many live runs; slow down.", wait)
 
         cancel = threading.Event()
         events = live_events(

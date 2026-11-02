@@ -17,7 +17,7 @@ from ragbench.api.assemble import answer_from_record, chunk_out, question_out
 from ragbench.api.schemas import QuestionResultOut, RetrievalOut
 from ragbench.benchmark import build_record, retrieval_record
 from ragbench.config import ExperimentSettings, load_experiment_settings, resolve_chroma_dir
-from ragbench.llm.client import ChatClient, LLMError, scrub
+from ragbench.llm.client import ChatClient, LLMError, MissingApiKeyError, scrub
 from ragbench.llm.roles import make_client
 from ragbench.metrics.cost import Pricing
 from ragbench.metrics.judge import Judge, JudgeError
@@ -56,6 +56,9 @@ class _CancelAware:
 
 
 def default_client_factory(role: str, api_key: str) -> ChatClient:
+    # make_client falls back to the server's .env key when given none; a live run must never do that
+    if not api_key:
+        raise MissingApiKeyError("live runs need the visitor's own key")
     return make_client("generator" if role == "generator" else "judge", api_key=api_key)
 
 

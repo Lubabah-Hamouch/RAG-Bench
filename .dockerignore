@@ -1,0 +1,32 @@
+# Secrets: never in the build context, let alone the image.
+.env
+.env.*
+!.env.example
+
+# Environments, caches, VCS
+.git/
+.venv/
+venv/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.cache/
+.vscode/
+.idea/
+
+# Frontend: installed and built inside the image
+ui/node_modules/
+ui/dist/
+
+# Data: the image gets the pre-built index from deploy/chroma/ (explicit COPY), never the local one
+data/chroma/
+data/processed/
+data/corpus/*.pdf
+
+# Not needed at runtime
+evaluation/results/stage0/
+evaluation/results/figures/
+docs/
+tests/

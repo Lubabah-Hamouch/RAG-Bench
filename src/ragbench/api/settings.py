@@ -35,4 +35,6 @@ class ApiSettings(BaseSettings):
     rate_limit_runs_window_s: float = 600.0
     rate_limit_validate: int = 10  # key validations per window
     rate_limit_validate_window_s: float = 60.0
-    max_concurrent_runs: int = 4  # across all clients; each client may have 1 in flight
+    # Across all clients; each client may have 1 in flight. One run at a time keeps the hosted
+    # server inside a 512 MB memory cap; a second visitor gets 503 server_busy with Retry-After.
+    max_concurrent_runs: int = 1
