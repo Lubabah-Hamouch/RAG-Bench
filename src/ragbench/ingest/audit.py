@@ -26,7 +26,6 @@ class DocAudit:
     pypdf_raw: dict[str, float | int]
     clean: dict[str, float | int]
     refs_removed_chars: int
-    boilerplate_removed_chars: int
     clean_pages: int
     sample: str
 
@@ -66,7 +65,6 @@ def audit_document(spec: DocumentSpec, corpus_dir: Path, processed_dir: Path) ->
         pypdf_raw=quality_report(pypdf_text),
         clean=quality_report(text),
         refs_removed_chars=refs_removed,
-        boilerplate_removed_chars=len(raw_text) - sum(len(p.text) for p in without_refs),
         clean_pages=len(cleaned),
         sample=re.sub(r"\s+", " ", text[1500:1800]),
     )

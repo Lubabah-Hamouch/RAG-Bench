@@ -1,1 +1,1 @@
-"""Phase placeholder: implemented in a later phase."""
+"""Retrieval: sentence-transformer embeddings and the Chroma vector store."""

@@ -51,7 +51,6 @@ class MetricsSettings(BaseModel):
 
 class PathSettings(BaseModel):
     corpus_dir: Path = Path("data/corpus")
-    corpus_manifest: Path = Path("data/corpus/manifest.yaml")
     processed_dir: Path = Path("data/processed")
     chroma_dir: Path = Path("data/chroma")
     questions: Path = Path("data/questions.yaml")

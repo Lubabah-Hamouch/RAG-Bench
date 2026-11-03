@@ -88,7 +88,7 @@ export function LiveBar({
                 value={text}
                 onChange={(e) => setText(e.target.value.slice(0, MAX_CHARS))}
                 rows={2}
-                placeholder="Ask something about RAG, Self-RAG, DSPy Assertions, vector databases or LangChain…"
+                placeholder="e.g. How does Self-RAG decide when to retrieve? What do Self-RAG's critique tokens judge? How is Self-RAG trained?"
                 aria-label="Your question"
                 className="focus-ring w-full resize-none border bg-bg px-3 py-2 text-[15.5px] hairline placeholder:text-faint"
               />

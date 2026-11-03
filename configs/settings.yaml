@@ -27,7 +27,6 @@ benchmark:
 
 paths:
   corpus_dir: data/corpus
-  corpus_manifest: data/corpus/manifest.yaml
   processed_dir: data/processed
   chroma_dir: data/chroma
   questions: data/questions.yaml

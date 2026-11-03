@@ -2,6 +2,8 @@
 
 **Does the way you prompt a RAG generator matter, or is retrieval doing all the work?** RAGBench answers that with a controlled experiment: the *same* retrieved passages go to four generation strategies (Baseline, Structured, RRR, Self-RAG) and a no-retrieval control, and a second, independent model then checks every claim in every answer against those passages. You can see exactly what each strategy gains, and what it invents.
 
+**Live demo: [rag-bench.onrender.com](https://rag-bench.onrender.com)** (free tier, so the first load after a quiet spell can take a minute while the server wakes up).
+
 <p align="center">
   <img src="docs/screenshots/explorer-light.png" alt="The Explorer view: pick one of the 10 benchmark questions to compare five answers side by side" width="760">
 </p>
@@ -66,7 +68,35 @@ npm run dev                          # UI on http://localhost:5173
 - **Try live mode offline:** `python scripts/mock_api.py 8001` serves the real API with a fake model. Its scores are canned, and the UI says so.
 - **Re-run the benchmark** (needs `GENERATOR_API_KEY` and `JUDGE_API_KEY` in `.env`, copied from `.env.example`): `ragbench bench`, then `ragbench context-support`, `ragbench analyze` and `ragbench export-replay`. Runs are resumable.
 - **Tests:** `pytest` (offline, fake models; the first run downloads the embedding model) and `cd ui && npm test`.
-- **Where things live:** the virtualenv (`.venv/`), the Chroma index (`data/chroma/`), the LLM response cache (`.cache/llm_cache/`) and `ui/node_modules/` are all inside the project folder and gitignored. `RAGBENCH_CHROMA_DIR` and `RAGBENCH_CACHE_DIR` override the first two.
+- **Where things live:** the virtualenv (`.venv/`), the Chroma index (`data/chroma/`), the LLM response cache (`.cache/llm_cache/`) and `ui/node_modules/` are all inside the project folder and gitignored. `RAGBENCH_CHROMA_DIR` and `RAGBENCH_CACHE_DIR` override the index and cache locations.
+
+## Run it with Docker
+
+The `Dockerfile` builds the whole app into one image: the built UI and the API, served by FastAPI from the same origin. This is how the live demo is deployed (Render, Docker runtime).
+
+```bash
+docker build -t ragbench .
+docker run --rm -p 8000:8000 ragbench        # UI and API on http://localhost:8000
+```
+
+- **No corpus fetch or ingest step.** The image ships a pre-built index from `deploy/chroma/` and bakes in the embedding model, so it runs offline apart from the visitor's Groq calls.
+- **The hosted index is a subset.** Chroma stores the full text of every chunk, so the shipped index holds only redistributable documents: today, just the CC BY Self-RAG paper. Live mode in the container therefore retrieves from fewer documents than the recorded benchmark (Replay is unaffected). `python deploy/build_index.py` rebuilds it after a manifest change.
+- **Pinned runtime dependencies** are in `requirements-deploy.txt` (chromadb especially, since the index's on-disk format is tied to its version); CPU-only torch is installed separately.
+- **Hosting settings** (environment variables): `RAGBENCH_CORS_ORIGINS=["https://<your-service>"]`, `RAGBENCH_REQUIRE_HTTPS=1` (refuse keys over plain HTTP) and `RAGBENCH_TRUST_PROXY_HEADERS=1` (only behind a proxy you control). Do not set `GENERATOR_API_KEY` or `JUDGE_API_KEY`: live runs only ever use the visitor's own key. One live run executes at a time, to stay inside a 512 MB memory limit; a second visitor gets a "server busy" reply and can retry shortly.
+
+## Repository layout
+
+```
+src/ragbench/       Python package: ingest, retrieval, llm, strategies, metrics, api, cli
+ui/                 React frontend; ui/public/replay/ holds the recorded benchmark as static JSON
+configs/            experiment settings, model pricing, free-tier budget
+data/               questions with gold facts, corpus manifest (+ the one shipped PDF)
+evaluation/         recorded results, figures, and the retrieval / judge-validation experiments
+deploy/             build_index.py and the pre-built Chroma index shipped in the Docker image
+scripts/            fetch_corpus.py (download the corpus), mock_api.py (API with a fake model)
+tests/              unit (offline) and integration (real model / live API) tests
+docs/               corpus audit and README screenshots
+```
 
 ## Methodology
 

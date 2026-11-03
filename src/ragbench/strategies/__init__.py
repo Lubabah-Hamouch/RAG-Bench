@@ -1,1 +1,1 @@
-"""Phase placeholder: implemented in a later phase."""
+"""Generation strategies: Baseline, Structured, RRR, Self-RAG and the no-retrieval control."""

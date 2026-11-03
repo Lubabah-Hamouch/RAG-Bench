@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import { motion } from "framer-motion";
-import { AlertTriangle, CheckCircle2, Eye, EyeOff, KeyRound, Loader2, Lock, ServerCrash } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Eye, EyeOff, Info, KeyRound, Loader2, Lock, ServerCrash } from "lucide-react";
 import { useState } from "react";
 import type { Backend, KeyStatus } from "@/hooks/useLive";
 
@@ -40,6 +40,12 @@ export function KeyPanel({
           <p className="mb-3 max-w-xl text-[15px] leading-relaxed text-dim">
             Run any benchmark question, or your own, through all five strategies live. Replay stays the default; this
             uses your Groq quota (a full scored run is about 20k tokens).
+          </p>
+          <p className="mb-3 flex max-w-xl items-start gap-2 border-l-2 border-warn pl-2.5 text-[14.5px] leading-snug text-ink">
+            <Info size={14} className="mt-0.5 shrink-0 text-warn" />
+            <span>
+              On the hosted demo, live mode can only search the Self-RAG paper, so questions on other topics will get weak or "I don't know" answers.
+            </span>
           </p>
 
           <form

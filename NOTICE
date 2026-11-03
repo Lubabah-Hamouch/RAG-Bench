@@ -1,12 +1,17 @@
 Third-party material
 
 data/corpus/2310.11511v1.pdf
+deploy/chroma/ (and the Docker image built from this repository)
   "Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection"
   by Akari Asai, Zeqiu Wu, Yizhong Wang, Avirup Sil and Hannaneh Hajishirzi
   (arXiv:2310.11511v1, https://arxiv.org/abs/2310.11511).
   Licensed under Creative Commons Attribution 4.0 International (CC BY 4.0),
   https://creativecommons.org/licenses/by/4.0/
-  Included unmodified. This file is not covered by the repository's MIT License.
+  The PDF in data/corpus/ is included unmodified. The index in deploy/chroma/
+  holds the same paper in modified form: its text was extracted, cleaned (the
+  reference list removed) and split into chunks, stored alongside their
+  embeddings, by deploy/build_index.py. Both forms are covered by this notice
+  and neither is covered by the repository's MIT License.
 
 The other corpus documents are not distributed with this repository. They are
 downloaded from their original sources by scripts/fetch_corpus.py and remain the

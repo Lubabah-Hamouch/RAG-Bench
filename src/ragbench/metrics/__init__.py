@@ -1,1 +1,1 @@
-"""Phase placeholder: implemented in a later phase."""
+"""Metrics: lexical, groundedness, coverage, consistency, cost and bootstrap statistics."""

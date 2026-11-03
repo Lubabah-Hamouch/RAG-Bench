@@ -1,8 +1,8 @@
-"""Response models: the typed contract shared with the (future) frontend."""
+"""Response models: the typed contract shared with the frontend."""
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -163,6 +163,3 @@ class ErrorOut(BaseModel):
     error: str
     message: str
     retry_after_s: float | None = None
-
-
-SummaryOut = dict[str, Any]

@@ -37,8 +37,8 @@ Project root: the repository root. The original M2DS coursework files this proje
 - **`/api/run` has two response modes.** The default is server-sent events (`retrieval`, then per strategy `strategy_started`, `strategy_done`, `metrics`, finally `done`, or `error`); `?stream=false` returns one JSON object (added for tests and simple clients). There are no separate `stage` events: each strategy's stages arrive in `strategy_done.trace`. In stream mode errors arrive as an `error` event carrying an HTTP-style `status`; in JSON mode they are real HTTP statuses (401 invalid key, 429 provider quota or our rate limit, 422 bad question, 504 timeout, 502 upstream).
 - **Same shape for replay and live.** One code path (`api/assemble.py`) turns a benchmark record into the response for both, so they cannot drift. Live runs are single-trial: `consistency` is always null and there are no confidence intervals, as planned. Free-text live questions are scored for groundedness only (no gold facts, so no coverage or FCS); benchmark questions run via `question_id` also get coverage and FCS. FCS counts a refusal on an answerable question as 0, as in the report.
 - **Key handling (all covered by tests, with three mutation checks that confirmed the tests can fail):** the key is read per request and passed only to a per-request client factory; clients built with a key bypass the disk cache; error text is scrubbed of the key; unexpected errors return a generic message (type only is logged, never the message or traceback); logs are redacted at record creation (a `LogRecord` factory, stronger than the planned per-handler filter, so it also covers uvicorn); a malformed key is rejected without being echoed. There is **no server-side key fallback at all**, even locally: live runs always need the header.
-- **Abuse protection:** per-IP sliding-window rate limits (6 live runs per 10 minutes, 10 validations per minute), one run in flight per IP and a global cap of 4, a 500-character question limit, a 240 s run budget checked between steps (a call already in flight is bounded only by the client's 60 s timeout), and `Retry-After` headers. Limits are in-memory and per process, so a multi-worker deployment would need a shared store. Rate limiting is deliberately by IP only, so no key or key hash is ever held. `RAGBENCH_TRUST_PROXY_HEADERS` must be set to honour `X-Forwarded-For/Proto` behind a proxy.
-- **HTTPS and CORS:** `RAGBENCH_REQUIRE_HTTPS=1` (hosted mode) makes key endpoints refuse plain HTTP; off by default for local use. CORS allows only the local dev origins (`localhost`/`127.0.0.1` on ports 5173 and 3000) and the key header, with no credentials; set `RAGBENCH_CORS_ORIGINS` (a JSON list) for the real domain. Responses carry `nosniff` and a restrictive CSP, and live responses are `no-store`.
+- **Abuse protection:** per-IP sliding-window rate limits (6 live runs per 10 minutes, 10 validations per minute), one run in flight per IP and a global cap of 1 (lowered from 4 so the hosted server stays inside a 512 MB memory limit), a 500-character question limit, a 240 s run budget checked between steps (a call already in flight is bounded only by the client's 60 s timeout), and `Retry-After` headers. Limits are in-memory and per process, so a multi-worker deployment would need a shared store. Rate limiting is deliberately by IP only, so no key or key hash is ever held. `RAGBENCH_TRUST_PROXY_HEADERS` must be set to honour `X-Forwarded-For/Proto` behind a proxy.
+- **HTTPS and CORS:** `RAGBENCH_REQUIRE_HTTPS=1` (hosted mode) makes key endpoints refuse plain HTTP; off by default for local use. CORS allows only the local dev origins (`localhost`/`127.0.0.1` on ports 5173 and 3000) and the key header, with no credentials; set `RAGBENCH_CORS_ORIGINS` (a JSON list) for the real domain. Responses carry `nosniff`, and live responses are `no-store`. The UI and the API have separate Content-Security-Policies: API responses get a strict one (`default-src 'none'`), while the built UI, when the API serves it, gets its own policy allowing only same-origin resources plus the hashes of its inline scripts.
 - **Supporting changes:** `LLMClient` now sets error codes (`auth_failed`, `model_not_found`, `rate_limited`) and has `list_models()` (used by key validation, which costs no tokens); `ragbench serve` runs the API and `ragbench export-replay` writes the same JSON as static files (13 files, about 350 KB) for the keyless hosted demo. The embedder and Chroma store load lazily on the first live run, so a replay-only server starts instantly.
 - **Not done, by design:** no call to the real Groq API was made to test the live path; every live test uses a fake client. A real end-to-end live run with your own key is left for you or for Phase 6.
 
@@ -72,7 +72,7 @@ Project root: the repository root. The original M2DS coursework files this proje
 - **Token cost (rough estimate for the 10 x 2 benchmark; baseline run was 146.6k raw generator tokens, daily limit 200k):** rerank 20 -> 4 about 152k (+9% context, fits); rerank 20 -> 6 about 190k (+63% context, no margin, does not fit with a safety margin); flat k=8 about 215k (does not fit). So reranking to 6 costs about 40% of k=8's extra context less than k=8, but still too much for one free-tier day.
 - **Missing control:** flat dense k=6 was not judged, so it is not shown that reranking adds value beyond simply retrieving more (cost: ~7k judge tokens).
 - **Decision:** do not layer further fixes. Q11-type cross-document questions and Q03-type chunk-ranking gaps are accepted as **documented retrieval limitations** (context recall per question is already reported in `summary.md`). Because no retrieval change was adopted, **no benchmark rerun is needed**; the existing results stand. Q13 abstention under any reranked retrieval was not tested (it needs generator tokens).
-- **Dependency/scope notes:** `scipy` is used only for the Wilcoxon test; the `eval` extra also installed pandas, scikit-learn and matplotlib for later phases.
+- **Dependency/scope notes:** `scipy` is used only for the Wilcoxon test; the `eval` extra also installs scikit-learn and matplotlib for later phases.
 
 ---
 
@@ -111,6 +111,10 @@ ragbench/
 ├── README.md
 ├── ARCHITECTURE_PLAN.md
 ├── LICENSE
+├── NOTICE                         # third-party material (the shipped Self-RAG paper, in both forms)
+├── Dockerfile                     # one image: built UI + API, served from the same origin
+├── .dockerignore
+├── requirements-deploy.txt        # pinned runtime dependencies for the Docker image
 ├── pyproject.toml                 # package + deps + ruff/pytest/mypy config
 ├── .env.example                   # template only; real .env is gitignored
 ├── .gitignore
@@ -121,7 +125,8 @@ ragbench/
 │   └── budget.yaml                # free-tier limits used by `ragbench budget`
 │
 ├── data/
-│   ├── corpus/                    # the 7 source PDFs + manifest.yaml (cleaning rules)
+│   ├── corpus/                    # manifest.yaml (sources, licences, cleaning rules) + the one shipped
+│   │                              #   PDF (CC BY Self-RAG); the other 6 are fetched by scripts/fetch_corpus.py
 │   ├── processed/                 # generated: cleaned text + chunks.jsonl (gitignored)
 │   └── questions.yaml             # the 10 benchmark questions with gold facts (+ dropped ones)
 │
@@ -173,7 +178,8 @@ ragbench/
 │   │   ├── stats.py               # bootstrap CIs, paired differences, Wilcoxon
 │   │   └── validation.py          # judge-vs-human agreement
 │   └── api/
-│       ├── main.py                # FastAPI app factory, warm-up, CORS
+│       ├── main.py                # FastAPI app factory, warm-up, CORS; serves the built UI (ui/dist)
+│       │                          #   with its own Content-Security-Policy
 │       ├── routes.py              # /health /strategies /questions /results /live/validate /run
 │       ├── schemas.py             # response models (the contract the UI types are generated from)
 │       ├── replay.py              # recorded results + static export
@@ -192,7 +198,12 @@ ragbench/
 │       └── stage0/                # retrieval-investigation outputs
 │
 ├── scripts/
+│   ├── fetch_corpus.py            # download the 6 non-redistributable corpus documents
 │   └── mock_api.py                # the real API with a fake model, for trying live mode offline
+│
+├── deploy/
+│   ├── build_index.py             # build the Docker image's index from redistributable sources only
+│   └── chroma/                    # that pre-built index (Self-RAG paper only), copied into the image
 │
 ├── ui/                            # React + Vite + TypeScript (section 7)
 │   ├── src/{components,hooks,lib,test}/
@@ -670,7 +681,7 @@ JUDGE_MODEL=openai/gpt-oss-20b   # reasoning model; see JUDGE_REASONING_EFFORT
 Startup guard: if `JUDGE_MODEL == GENERATOR_MODEL`, log a loud warning, since the same model judging its own output biases the scores.
 
 ### 6.2 Reliability
-- `tenacity` retries on 429/5xx with exponential back-off.
+- The client retries on 429/5xx and connection errors with exponential back-off, honouring `Retry-After` (hand-written, no retry library).
 - A semaphore caps concurrency (default 4) to respect Groq limits.
 - On-disk cache keyed on `(role, model, messages, temperature, max_tokens, trial_id)`; the trial id is part of the key so five trials are five distinct samples.
 - Every result row stores model ids, settings hash and git commit, so results are traceable.
@@ -685,10 +696,10 @@ Startup guard: if `JUDGE_MODEL == GENERATOR_MODEL`, log a loud warning, since th
 
 ### Option B: FastAPI + React/Vite/TypeScript (recommended)
 - **Pros:** full design control, which is what makes a portfolio piece memorable; true streaming (SSE) so the four strategy cards fill in live and race each other; the same typed API serves the CLI, the benchmark and the UI; shows full-stack skill (typed contract, API design, state management); static build can be hosted free with replay data.
-- **Cons:** about 3 to 5x the build time of Streamlit; two codebases; deployment of the backend needs a host if you want live mode.
+- **Cons:** about 3 to 5x the build time of Streamlit; two codebases; deployment of the backend needs a host if you want live mode (resolved: the UI and API ship together as one Docker container on Render).
 
 ### Recommendation: Option B, built in a way that contains the risk
-Reasons: you said the goal is "visually impressive, not generic", and only B can deliver that. The extra time is contained because (1) the Python core is built and tested first and is UI-independent, so Streamlit would only have saved UI time, and (2) the API contract is small (6 endpoints). **Replay mode** is the key portfolio feature and the **default view**: `ui/public/replay/` holds the frozen benchmark results, so a recruiter can explore every question, answer, metric and chart on a static host with no key and no backend. **Live mode** is opt-in and bring-your-own-key (section 7.4).
+Reasons: you said the goal is "visually impressive, not generic", and only B can deliver that. The extra time is contained because (1) the Python core is built and tested first and is UI-independent, so Streamlit would only have saved UI time, and (2) the API contract is small (6 endpoints). **Replay mode** is the key portfolio feature and the **default view**: `ui/public/replay/` holds the frozen benchmark results, so a recruiter can explore every question, answer, metric and chart with no key: replay reads those static files and makes no API calls. The hosted demo is one Docker container on Render that serves the built UI (replay files included) and the live API from the same origin. **Live mode** is opt-in and bring-your-own-key (section 7.4).
 
 ### 7.4 Replay default, "Try it live" toggle, and BYOK flow
 
@@ -742,14 +753,14 @@ Reasons: you said the goal is "visually impressive, not generic", and only B can
 |---|---|
 | Retrieval | `chromadb`, `sentence-transformers` (pulls PyTorch; use the CPU wheel), `numpy` |
 | Ingestion | `pypdf`, `pymupdf` (fallback extractor), `langchain-text-splitters` (splitter only, no full LangChain) |
-| LLM access | `openai` (OpenAI-compatible SDK used for Groq and for a later GPT-4o-mini swap), `tenacity`, `diskcache` |
+| LLM access | `openai` (OpenAI-compatible SDK used for Groq and for a later GPT-4o-mini swap), `diskcache` |
 | Config/schemas | `pydantic`, `pydantic-settings`, `pyyaml`, `python-dotenv` |
-| Metrics/stats | `pysbd` (sentence splitting), `scipy`, `pandas`, `scikit-learn` (Cohen's kappa) |
+| Metrics/stats | `pysbd` (sentence splitting), `scipy`, `scikit-learn` (Cohen's kappa) |
 | API | `fastapi`, `uvicorn[standard]`, `sse-starlette` |
 | Reporting | `matplotlib` (static figures for the README) |
-| Dev | `pytest`, `pytest-asyncio`, `ruff`, `mypy`, `pre-commit` |
+| Dev | `pytest`, `ruff`, `mypy` |
 
-**Frontend:** `react`, `react-dom`, `vite`, `typescript`, `tailwindcss`, `shadcn/ui` (Radix primitives), `recharts` (or `visx` if custom charts are needed), `framer-motion`, `@tanstack/react-query`, `react-markdown`, `lucide-react`, `openapi-typescript` (generated API types), `vitest`.
+**Frontend:** `react`, `react-dom`, `vite`, `typescript`, `tailwindcss`, `framer-motion`, `react-markdown`, `lucide-react`, `openapi-typescript` (generated API types), `vitest`.
 
 Removed from the original stack: Gradio, PyPDF2 (deprecated), faiss-cpu (replaced by Chroma), `groq` SDK, `llama-cpp-python`, `google-generativeai`, and the full LangChain package.
 
@@ -768,7 +779,7 @@ Each phase ends with something runnable and an acceptance check.
 | **4. Question set and benchmark** | Author and **verify** gold facts in `questions.yaml`; `ragbench bench` (13 x 5 x 3 as planned; 10 x 5 x 2 as run) with caching and resume; `ragbench analyze` (CIs, paired differences); human-label 30 claims and run `validate_judge.py` | Full benchmark completes and is resumable; `summary.json` and figures generated; judge agreement reported; results reviewed for sanity (e.g. control scores lower on groundedness) |
 | **5. API** | FastAPI routes, SSE streaming, replay-data endpoint, pydantic schemas, CORS, basic rate limiting, no key exposure | `curl` can run a question and stream events; OpenAPI docs render; API tests pass |
 | **6. Frontend** | Vite app: question picker, context panel, five answer cards, claim highlighting, metric strips, comparison charts, benchmark heatmap, method tab; replay mode first, then live mode | Replay mode works fully offline from static files; live mode streams; looks right on desktop and mobile |
-| **7. Polish and release** | README with GIF/screenshots and headline results; the app's Method page and README limitations (honest limitations); architecture diagram; CI (ruff, mypy, pytest, frontend build); static deploy of the UI | A stranger can clone, read the README, and reproduce the benchmark or browse the hosted replay in minutes |
+| **7. Polish and release** | README with GIF/screenshots and headline results; the app's Method page and README limitations (honest limitations); architecture diagram; one Docker container (built UI + API, same origin) deployed on Render; ruff, mypy, pytest and the frontend build are run locally (no CI is set up) | A stranger can clone, read the README, and reproduce the benchmark or browse the hosted replay in minutes |
 
 Suggested order of effort: 0-1 about 1 day, 2-3 about 2 days, 4 about 1 to 2 days (gold-fact authoring and labelling are the slow part), 5 about 1 day, 6 about 3 to 4 days, 7 about 1 day.
 
@@ -787,6 +798,7 @@ Suggested order of effort: 0-1 about 1 day, 2-3 about 2 days, 4 about 1 to 2 day
 9. **BYOK trust:** visitors must trust the backend operator not to keep their key. We minimise exposure (memory-only, per-request, redacted logs, open source, throwaway-key advice) but cannot make it zero-trust. Documented in the UI and README.
 10. **Visitor rate limits:** Groq free-tier limits belong to the visitor. A full live run is about 9 generation calls plus up to 15 judge calls, which may hit their limit, so the UI surfaces 429s clearly and offers to skip judging.
 11. **Retrieval limits (accepted, section 4.10):** cross-document questions can miss half their evidence and some facts sit in chunks the dense ranker does not surface. Generation results on those questions mix retrieval and generation quality; read them with the per-question context recall.
+12. **Hosted live mode uses a subset index:** the Chroma index stores full chunk text, so the one shipped in the Docker image (`deploy/chroma/`) holds only the redistributable CC BY Self-RAG paper, not the full 7-document corpus. Live runs on the hosted demo therefore retrieve from that paper alone, and questions on other topics get weak or "I don't know" answers; the UI says so in the key panel. Replay, and live mode on a local install with the full index, are unaffected.
 
 ## 11. Decisions (all resolved)
 1. **Models:** generator `qwen/qwen3.8-27b`, judge `openai/gpt-oss-20b` (D1 revised). Trials reduced from 5 to 3.
