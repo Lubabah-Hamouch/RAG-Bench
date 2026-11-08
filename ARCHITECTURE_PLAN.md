@@ -1,7 +1,7 @@
 # ARCHITECTURE_PLAN: RAG Generation-Strategy Evaluation Dashboard
 
 Working name: **RAGBench** (Python package `ragbench`).
-Status: **Phases 0-5 built (backend API done; frontend is Phase 6); the benchmark ran on the reduced design below (see Results). The retrieval investigation is closed (section 4.10): no retrieval change adopted, no rerun needed.** Decisions D1, D3 (BYOK), D7 and D8 are finalized (section 0, section 11).
+Status: **Phases 0-7 built and deployed: the benchmark ran on the reduced design below (see Results), and the demo runs as two Render services, the UI as a static site and the API as a Docker web service (see Deployment, at the end). The retrieval investigation is closed (section 4.10): no retrieval change adopted, no rerun needed.** Decisions D1, D3 (BYOK), D7 and D8 are finalized (section 0, section 11).
 Project root: the repository root. The original M2DS coursework files this project was rebuilt from are no longer included.
 
 **Deviations from the plan so far (Phases 0-1)**
@@ -17,7 +17,7 @@ Project root: the repository root. The original M2DS coursework files this proje
 - **No `tenacity` dependency:** the retry loop is ~20 lines in the client, which keeps latency measurement exact (it times only the successful attempt) and is easy to test; `tenacity` was removed from the `llm` extra.
 - **Cache location:** the LLM disk cache lives in `.cache/llm_cache` (gitignored; override `RAGBENCH_CACHE_DIR`) and is disabled for BYOK clients.
 **Phase 3 findings and deviations**
-- **Decisions applied:** `.env.example`, `config.py` defaults and `settings.yaml` now use `qwen/qwen3.8-27b` (generator, `reasoning_effort=none` = plain instruct mode) and `openai/gpt-oss-20b` (judge, `reasoning_effort=low`), and `n_trials` is 3. Your own `.env` still holds the old model names, which override the defaults, so it needs updating by you.
+- **Decisions applied:** `.env.example`, `config.py` defaults and `settings.yaml` now use `qwen/qwen3.8-27b` (generator, `reasoning_effort=none` = plain instruct mode) and `openai/gpt-oss-20b` (judge, `reasoning_effort=low`), and `n_trials` was set to 3 (later reduced to 2, section 4.9). A local `.env` that still names the old models overrides these defaults.
 - **Judge reasoning overhead (measured):** at `low` effort gpt-oss-20b used ~430 hidden reasoning tokens over the 3 judge calls for a 9-claim answer, versus 2,326 at `medium` for identical scores, so `low` is kept. Verification is the expensive call (438 of 704 completion tokens). The judge starts at `max_tokens=1500` and, if a reply is cut off (`finish_reason=length` or empty), retries with double the budget up to 6,000. It also treats Groq's HTTP 400 `json_validate_failed` as retryable, salvaging the model's partial text when it parses.
 - **Judge sanity (live):** claim extraction, verification and coverage returned valid JSON on every real call; short refusals skip the judge entirely (0 calls); a grounded versus a deliberately fabricated answer is checked by a live test (`test_judge_scores_a_grounded_answer_high_and_a_fabricated_one_low`). Limitations seen: groundedness is 1.0 for all strategies on an easy lookup question, so differences should show on multi-hop questions; and negative claims about the corpus ("Self-RAG did not report Llama 3 results") are labelled `unsupported`.
 - **Pricing** (`configs/pricing.yaml`, from Groq's model pages on 2026-10-23): gpt-oss-20b $0.075 in / $0.30 out per 1M tokens; qwen3.8-27b (preview) $0.80 / $4.00. Unknown models give `cost = null`, never a guess. Free-tier usage costs $0; these are list prices.
@@ -38,7 +38,7 @@ Project root: the repository root. The original M2DS coursework files this proje
 - **Same shape for replay and live.** One code path (`api/assemble.py`) turns a benchmark record into the response for both, so they cannot drift. Live runs are single-trial: `consistency` is always null and there are no confidence intervals, as planned. Free-text live questions are scored for groundedness only (no gold facts, so no coverage or FCS); benchmark questions run via `question_id` also get coverage and FCS. FCS counts a refusal on an answerable question as 0, as in the report.
 - **Key handling (all covered by tests, with three mutation checks that confirmed the tests can fail):** the key is read per request and passed only to a per-request client factory; clients built with a key bypass the disk cache; error text is scrubbed of the key; unexpected errors return a generic message (type only is logged, never the message or traceback); logs are redacted at record creation (a `LogRecord` factory, stronger than the planned per-handler filter, so it also covers uvicorn); a malformed key is rejected without being echoed. There is **no server-side key fallback at all**, even locally: live runs always need the header.
 - **Abuse protection:** per-IP sliding-window rate limits (6 live runs per 10 minutes, 10 validations per minute), one run in flight per IP and a global cap of 1 (lowered from 4 so the hosted server stays inside a 512 MB memory limit), a 500-character question limit, a 240 s run budget checked between steps (a call already in flight is bounded only by the client's 60 s timeout), and `Retry-After` headers. Limits are in-memory and per process, so a multi-worker deployment would need a shared store. Rate limiting is deliberately by IP only, so no key or key hash is ever held. `RAGBENCH_TRUST_PROXY_HEADERS` must be set to honour `X-Forwarded-For/Proto` behind a proxy.
-- **HTTPS and CORS:** `RAGBENCH_REQUIRE_HTTPS=1` (hosted mode) makes key endpoints refuse plain HTTP; off by default for local use. CORS allows only the local dev origins (`localhost`/`127.0.0.1` on ports 5173 and 3000) and the key header, with no credentials; set `RAGBENCH_CORS_ORIGINS` (a JSON list) for the real domain. Responses carry `nosniff`, and live responses are `no-store`. The UI and the API have separate Content-Security-Policies: API responses get a strict one (`default-src 'none'`), while the built UI, when the API serves it, gets its own policy allowing only same-origin resources plus the hashes of its inline scripts.
+- **HTTPS and CORS:** `RAGBENCH_REQUIRE_HTTPS=1` (hosted mode) makes key endpoints refuse plain HTTP; off by default for local use. CORS allows only the local dev origins (`localhost`/`127.0.0.1` on ports 5173 and 3000) and the key header, with no credentials; set `RAGBENCH_CORS_ORIGINS` (a JSON list) for the real domain. Responses carry `nosniff`, and live responses are `no-store`. API responses get a strict Content-Security-Policy (`default-src 'none'`), except the `/docs` and `/redoc` pages, which get their own policy allowing the CDN assets they load. The UI is a separate static site and gets its policy from `render.yaml` (see Deployment).
 - **Supporting changes:** `LLMClient` now sets error codes (`auth_failed`, `model_not_found`, `rate_limited`) and has `list_models()` (used by key validation, which costs no tokens); `ragbench serve` runs the API and `ragbench export-replay` writes the same JSON as static files (13 files, about 350 KB) for the keyless hosted demo. The embedder and Chroma store load lazily on the first live run, so a replay-only server starts instantly.
 - **Not done, by design:** no call to the real Groq API was made to test the live path; every live test uses a fake client. A real end-to-end live run with your own key is left for you or for Phase 6.
 
@@ -112,7 +112,8 @@ ragbench/
 ├── ARCHITECTURE_PLAN.md
 ├── LICENSE
 ├── NOTICE                         # third-party material (the shipped Self-RAG paper, in both forms)
-├── Dockerfile                     # one image: built UI + API, served from the same origin
+├── Dockerfile                     # the API image (the UI is deployed separately)
+├── render.yaml                    # the UI as a Render static site: build, API URL, CSP
 ├── .dockerignore
 ├── requirements-deploy.txt        # pinned runtime dependencies for the Docker image
 ├── pyproject.toml                 # package + deps + ruff/pytest/mypy config
@@ -178,8 +179,8 @@ ragbench/
 │   │   ├── stats.py               # bootstrap CIs, paired differences, Wilcoxon
 │   │   └── validation.py          # judge-vs-human agreement
 │   └── api/
-│       ├── main.py                # FastAPI app factory, warm-up, CORS; serves the built UI (ui/dist)
-│       │                          #   with its own Content-Security-Policy
+│       ├── main.py                # FastAPI app factory, CORS, security headers (strict CSP;
+│       │                          #   a separate one for /docs and /redoc)
 │       ├── routes.py              # /health /strategies /questions /results /live/validate /run
 │       ├── schemas.py             # response models (the contract the UI types are generated from)
 │       ├── replay.py              # recorded results + static export
@@ -696,7 +697,7 @@ Startup guard: if `JUDGE_MODEL == GENERATOR_MODEL`, log a loud warning, since th
 
 ### Option B: FastAPI + React/Vite/TypeScript (recommended)
 - **Pros:** full design control, which is what makes a portfolio piece memorable; true streaming (SSE) so the four strategy cards fill in live and race each other; the same typed API serves the CLI, the benchmark and the UI; shows full-stack skill (typed contract, API design, state management); static build can be hosted free with replay data.
-- **Cons:** about 3 to 5x the build time of Streamlit; two codebases; deployment of the backend needs a host if you want live mode (resolved: the UI and API ship together as one Docker container on Render).
+- **Cons:** about 3 to 5x the build time of Streamlit; two codebases; deployment of the backend needs a host if you want live mode (resolved: the UI is a static site and the API a Docker web service, both on Render).
 
 ### Recommendation: Option B, built in a way that contains the risk
 Reasons: you said the goal is "visually impressive, not generic", and only B can deliver that. The extra time is contained because (1) the Python core is built and tested first and is UI-independent, so Streamlit would only have saved UI time, and (2) the API contract is small (6 endpoints). **Replay mode** is the key portfolio feature and the **default view**: `ui/public/replay/` holds the frozen benchmark results, so a recruiter can explore every question, answer, metric and chart with no key: replay reads those static files and makes no API calls. The hosted demo is one Docker container on Render that serves the built UI (replay files included) and the live API from the same origin. **Live mode** is opt-in and bring-your-own-key (section 7.4).
@@ -710,7 +711,7 @@ Reasons: you said the goal is "visually impressive, not generic", and only B can
 | Needs backend | No | Yes (retrieval + strategies run server-side) |
 | Needs a key | No | Yes, the visitor's own Groq key |
 | Questions | The 13 benchmark questions | Any of the 13, or free text |
-| Metrics shown | Everything: all 3 trials, consistency, CIs, benchmark heatmap | Single trial per condition: groundedness, coverage, diversity, latency, tokens, cost. **No consistency or CIs** (they need N trials). Benchmark means are shown beside live numbers for context. |
+| Metrics shown | Everything: every recorded trial, consistency, CIs, benchmark heatmap | Single trial per condition: groundedness, coverage, diversity, latency, tokens, cost. **No consistency or CIs** (they need N trials). Benchmark means are shown beside live numbers for context. |
 
 **Flow**
 1. The page loads in Replay. A persistent header badge reads **REPLAY**, and no key field is visible.
@@ -742,7 +743,7 @@ Reasons: you said the goal is "visually impressive, not generic", and only B can
 - Visual direction: dark-first theme with a light toggle; one accent colour per strategy used consistently across all views; Inter + a monospace for numbers; subtle Framer Motion transitions; fully responsive.
 
 ### API contract
-`GET /api/questions`, `GET /api/results/summary`, `GET /api/results/{question_id}` (the first three also exist as static JSON for Replay), `POST /api/live/validate` (header `X-Groq-Api-Key`), `POST /api/run` (header `X-Groq-Api-Key`; SSE stream of `retrieval`, `strategy_started`, `stage`, `strategy_done`, `metrics`, `done` events), `GET /api/health`. Response models are pydantic in `api/schemas.py`, with TypeScript types generated from the OpenAPI schema so the UI cannot drift.
+`GET /api/questions`, `GET /api/results/summary`, `GET /api/results/{question_id}` (the first three also exist as static JSON for Replay), `POST /api/live/validate` (header `X-Groq-Api-Key`), `POST /api/run` (header `X-Groq-Api-Key`; SSE stream of `retrieval`, then `strategy_started`, `strategy_done` and `metrics` per strategy, then `done` or `error`; each strategy's stages arrive in `strategy_done.trace`), `GET /api/health`. Response models are pydantic in `api/schemas.py`, with TypeScript types generated from the OpenAPI schema so the UI cannot drift.
 
 ---
 
@@ -779,7 +780,7 @@ Each phase ends with something runnable and an acceptance check.
 | **4. Question set and benchmark** | Author and **verify** gold facts in `questions.yaml`; `ragbench bench` (13 x 5 x 3 as planned; 10 x 5 x 2 as run) with caching and resume; `ragbench analyze` (CIs, paired differences); human-label 30 claims and run `validate_judge.py` | Full benchmark completes and is resumable; `summary.json` and figures generated; judge agreement reported; results reviewed for sanity (e.g. control scores lower on groundedness) |
 | **5. API** | FastAPI routes, SSE streaming, replay-data endpoint, pydantic schemas, CORS, basic rate limiting, no key exposure | `curl` can run a question and stream events; OpenAPI docs render; API tests pass |
 | **6. Frontend** | Vite app: question picker, context panel, five answer cards, claim highlighting, metric strips, comparison charts, benchmark heatmap, method tab; replay mode first, then live mode | Replay mode works fully offline from static files; live mode streams; looks right on desktop and mobile |
-| **7. Polish and release** | README with GIF/screenshots and headline results; the app's Method page and README limitations (honest limitations); architecture diagram; one Docker container (built UI + API, same origin) deployed on Render; ruff, mypy, pytest and the frontend build are run locally (no CI is set up) | A stranger can clone, read the README, and reproduce the benchmark or browse the hosted replay in minutes |
+| **7. Polish and release** | README with GIF/screenshots and headline results; the app's Method page and README limitations (honest limitations); architecture diagram; deployed on Render as a static site (UI) and a Docker web service (API); ruff, mypy, pytest and the frontend build are run locally (no CI is set up) | A stranger can clone, read the README, and reproduce the benchmark or browse the hosted replay in minutes |
 
 Suggested order of effort: 0-1 about 1 day, 2-3 about 2 days, 4 about 1 to 2 days (gold-fact authoring and labelling are the slow part), 5 about 1 day, 6 about 3 to 4 days, 7 about 1 day.
 
@@ -801,7 +802,7 @@ Suggested order of effort: 0-1 about 1 day, 2-3 about 2 days, 4 about 1 to 2 day
 12. **Hosted live mode uses a subset index:** the Chroma index stores full chunk text, so the one shipped in the Docker image (`deploy/chroma/`) holds only the redistributable CC BY Self-RAG paper, not the full 7-document corpus. Live runs on the hosted demo therefore retrieve from that paper alone, and questions on other topics get weak or "I don't know" answers; the UI says so in the key panel. Replay, and live mode on a local install with the full index, are unaffected.
 
 ## 11. Decisions (all resolved)
-1. **Models:** generator `qwen/qwen3.8-27b`, judge `openai/gpt-oss-20b` (D1 revised). Trials reduced from 5 to 3.
+1. **Models:** generator `qwen/qwen3.8-27b`, judge `openai/gpt-oss-20b` (D1 revised). Trials reduced from 5 to 3, then to 2 to fit the free tier (section 4.9).
 2. **Distractor paper:** kept deliberately (D8).
 3. **Demo mode:** Replay is the default; Live is opt-in with the visitor's own Groq key (D9, section 7.4). No server-side LLM key in hosted mode.
 4. **Location:** one project folder holding the code, `.venv/` and the local index and cache (D7).
@@ -815,11 +816,12 @@ SSE. Deviations from section 7: Tailwind v3 with CSS-variable colour tokens (no 
 custom SVG charts instead of recharts (CI bars, forest plots, heatmap, scatter); hash routing
 instead of a router library; plain hooks instead of react-query; API types generated from the
 FastAPI OpenAPI schema (openapi-typescript); replay data served statically from
-`ui/public/replay` so the demo works without a backend. Smoke test of the live endpoint: first
+`ui/public/replay`, so replay needs no backend, both locally and on the hosted static site. Smoke test of the live endpoint: first
 attempt hit a 240 s timeout from a ~1 min embedding-model cold start; fixed with a background
 warm-up (`live_ready`/`live_error` in `/api/health`) and a run budget that starts after
 retrieval. Second attempt passed (HTTP 200, 117.7 s, ~19.7k tokens, no key text in response or
-logs). Cooperative cancellation now frees the in-flight slot when a client disconnects.
+logs). Cooperative cancellation now frees the in-flight slot when a client disconnects. The startup
+warm-up was later replaced by loading the model on the first live run (see Deployment).
 
 Visual redesign ("lab report"): light paper theme by default; Source Serif 4 and IBM Plex Mono;
 hairline borders, ledger tables and 0-2px radius in place of shadowed rounded cards; teal and brick
@@ -838,3 +840,20 @@ models that wrote and scored them. Open measurement caveat: the judge accepted a
 no-retrieval answer as covering the "different document per token" gold fact (the coverage
 prompt says vague mentions do not count), so Control FCS on Q02 (1.00) is probably overstated;
 coverage is not yet in the human-labelling sample.
+
+### Deployment (two Render services)
+
+- **UI:** a static site, `ragbench-ui` (https://ragbench-ui.onrender.com), defined in
+  `render.yaml`: build command, `VITE_API_URL` and response headers. Its Content-Security-Policy
+  is the one the API used to send with the UI (same-origin resources and the SHA-256 of the inline
+  theme script), with `connect-src` also allowing the API origin. `ui/src/test/csp.test.ts` fails
+  if the hash or that origin falls out of step with `index.html` and `VITE_API_URL`. Replay data is
+  served from the static site's own files, so replay never calls the API.
+- **API:** the Docker image, API only (https://rag-bench.onrender.com). `RAGBENCH_CORS_ORIGINS` is
+  the static site's origin. The embedding model and index load on the first live query
+  (`RAGBENCH_WARM_RETRIEVER=1` loads them at startup instead), and `/api/health` reports
+  `live_ready` false until then. Measured cold loads ranged from about 17 s (Docker on a desktop)
+  to 107 s (Windows, first import), so the UI promises only "a minute or more".
+- **Live mode against a sleeping API:** the UI contacts the API only once "Try it live" is
+  switched on, treats "reachable" and "model loaded" as separate states, waits up to two minutes
+  for a free-tier wake, and re-checks health before verifying a key or starting a run.

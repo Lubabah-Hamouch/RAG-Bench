@@ -24,9 +24,10 @@ class ApiSettings(BaseSettings):
     # Only honour X-Forwarded-For / X-Forwarded-Proto when behind a proxy you control.
     trust_proxy_headers: bool = False
 
-    # The embedding model and index load on the first live run, which waits for them (a minute or
-    # more cold). Set this to load them in the background at startup instead, at the cost of the
-    # memory and CPU on every start. Replay endpoints never wait for them either way.
+    # The embedding model and index load on the first live run, which waits for them. A cold load
+    # varies with the machine: about 17 s in Docker on a desktop, 107 s on Windows. Set this to
+    # load them in the background at startup instead, at the cost of the memory and CPU on every
+    # start. Replay endpoints never wait for them either way.
     warm_retriever: bool = False
 
     # Abuse protection for the live endpoint (per client IP, in-memory).

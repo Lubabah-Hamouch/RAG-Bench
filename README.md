@@ -2,7 +2,7 @@
 
 **Does the way you prompt a RAG generator matter, or is retrieval doing all the work?** RAGBench answers that with a controlled experiment: the *same* retrieved passages go to four generation strategies (Baseline, Structured, RRR, Self-RAG) and a no-retrieval control, and a second, independent model then checks every claim in every answer against those passages. You can see exactly what each strategy gains, and what it invents.
 
-**Live demo: [rag-bench.onrender.com](https://rag-bench.onrender.com)** (free tier, so the first load after a quiet spell can take a minute while the server wakes up).
+**Live demo: [ragbench-ui.onrender.com](https://ragbench-ui.onrender.com)**. The recorded results load straight away. Live mode runs on a free-tier API server that sleeps when idle, so after a quiet spell it can take about a minute to wake, and the first live run waits a little longer while the model loads.
 
 <p align="center">
   <img src="docs/screenshots/explorer-light.png" alt="The Explorer view: pick one of the 10 benchmark questions to compare five answers side by side" width="760">
@@ -39,6 +39,7 @@ Results come from 10 questions, so read the confidence intervals, not just the b
 - **Backend:** Python 3.11+, PyMuPDF, sentence-transformers (`all-MiniLM-L6-v2`), ChromaDB, FastAPI with server-sent events. Generator `qwen/qwen3.8-27b` and judge `openai/gpt-oss-20b` on Groq's free tier.
 - **Frontend:** React 18, Vite, TypeScript, Tailwind, custom SVG charts. Replay is the default view; **Try it live** takes a visitor's own Groq key (held in memory only, sent per request in a header, never stored or logged) and runs any question, including your own, through all five conditions.
 - **Evaluation:** claim-level groundedness, gold-fact coverage, FCS (their harmonic mean), semantic consistency, latency and list-price cost, with cluster-bootstrap 95% intervals over questions.
+- **Hosting:** two services on Render. The UI is a static site that also serves the recorded results, so replay never touches the API. The API is a Docker web service that live mode calls. See [Deployment](#deployment).
 
 ## Run it locally
 
@@ -62,7 +63,7 @@ npm run dev                          # UI on http://localhost:5173
 ```
 
 - **Corpus:** only the CC BY Self-RAG paper ships in `data/corpus/`. The other six documents (three papers under arXiv's licence, three vendor doc pages whose terms restrict redistribution) are fetched from their original URLs by `scripts/fetch_corpus.py`, which reads `data/corpus/manifest.yaml`. Required before `ragbench ingest` or the tests. arXiv papers are fetched at the pinned version; the three web pages are printed to PDF with a local Chrome or Edge (`--browser PATH` if it isn't found) and may have changed since the 2025-12-07 snapshot the recorded results used. Web pages drift over time, so the gold-fact quote check for those three documents is best-effort on a fresh fetch (it skips instead of failing).
-- **No keys needed to explore.** The recorded benchmark is bundled in `ui/public/replay/`, so the Explorer, Benchmark and Method views work without the backend or any key.
+- **No keys needed to explore.** The recorded benchmark is bundled in `ui/public/replay/`, so the Explorer, Benchmark and Method views work without the backend or any key. That is true locally and on the hosted static site; only live mode calls the API.
 - **Live mode** needs the API running and a Groq key pasted into the UI. A fully scored run is about 20,000 tokens. The server has no key of its own.
 - **Port 8000 busy?** Run `ragbench serve --port 8001` and start the UI with `VITE_API_URL=http://127.0.0.1:8001`.
 - **Try live mode offline:** `python scripts/mock_api.py 8001` serves the real API with a fake model. Its scores are canned, and the UI says so.
@@ -70,19 +71,35 @@ npm run dev                          # UI on http://localhost:5173
 - **Tests:** `pytest` (offline, fake models; the first run downloads the embedding model) and `cd ui && npm test`.
 - **Where things live:** the virtualenv (`.venv/`), the Chroma index (`data/chroma/`), the LLM response cache (`.cache/llm_cache/`) and `ui/node_modules/` are all inside the project folder and gitignored. `RAGBENCH_CHROMA_DIR` and `RAGBENCH_CACHE_DIR` override the index and cache locations.
 
-## Run it with Docker
+## Run the API with Docker
 
-The `Dockerfile` builds the whole app into one image: the built UI and the API, served by FastAPI from the same origin. This is how the live demo is deployed (Render, Docker runtime).
+The `Dockerfile` builds the API only: the replay endpoints and live runs. The UI is not in the image; it is deployed separately as a static site (see [Deployment](#deployment)).
 
 ```bash
 docker build -t ragbench .
-docker run --rm -p 8000:8000 ragbench        # UI and API on http://localhost:8000
+docker run --rm -p 8000:8000 ragbench        # API on http://localhost:8000, docs at /docs
 ```
+
+To use the UI with it, run `cd ui && npm install && npm run dev` in a second terminal: the dev UI calls `http://127.0.0.1:8000` by default, and the API allows that origin.
 
 - **No corpus fetch or ingest step.** The image ships a pre-built index from `deploy/chroma/` and bakes in the embedding model, so it runs offline apart from the visitor's Groq calls.
 - **The hosted index is a subset.** Chroma stores the full text of every chunk, so the shipped index holds only redistributable documents: today, just the CC BY Self-RAG paper. Live mode in the container therefore retrieves from fewer documents than the recorded benchmark (Replay is unaffected). `python deploy/build_index.py` rebuilds it after a manifest change.
+- **The model loads on the first live run.** The server starts in seconds without the embedding model or index; the first live query loads them and waits for them, which took from under 20 seconds to almost 2 minutes in our measurements, depending on the machine. `GET /api/health` reports `live_ready: true` once they are loaded. `RAGBENCH_WARM_RETRIEVER=1` loads them at startup instead, at the cost of that memory and CPU on every start.
 - **Pinned runtime dependencies** are in `requirements-deploy.txt` (chromadb especially, since the index's on-disk format is tied to its version); CPU-only torch is installed separately.
-- **Hosting settings** (environment variables): `RAGBENCH_CORS_ORIGINS=["https://<your-service>"]`, `RAGBENCH_REQUIRE_HTTPS=1` (refuse keys over plain HTTP) and `RAGBENCH_TRUST_PROXY_HEADERS=1` (only behind a proxy you control). Do not set `GENERATOR_API_KEY` or `JUDGE_API_KEY`: live runs only ever use the visitor's own key. One live run executes at a time, to stay inside a 512 MB memory limit; a second visitor gets a "server busy" reply and can retry shortly.
+- **Hosting settings** (environment variables): `RAGBENCH_CORS_ORIGINS=["https://<your-frontend>"]` (the UI's origin), `RAGBENCH_REQUIRE_HTTPS=1` (refuse keys over plain HTTP) and `RAGBENCH_TRUST_PROXY_HEADERS=1` (only behind a proxy you control). Do not set `GENERATOR_API_KEY` or `JUDGE_API_KEY`: live runs only ever use the visitor's own key. One live run executes at a time, to stay inside a 512 MB memory limit; a second visitor gets a "server busy" reply and can retry shortly. Every setting, with its default, is listed in [.env.example](.env.example).
+
+## Deployment
+
+The live demo runs as two Render services:
+
+| Service | Built from | URL |
+|---|---|---|
+| Static site `ragbench-ui` (the UI, and the recorded results it replays) | `render.yaml` | https://ragbench-ui.onrender.com |
+| Docker web service (the API) | `Dockerfile` | https://rag-bench.onrender.com |
+
+- **`render.yaml` is the source of truth for the static site:** its build command, `VITE_API_URL` (the API's origin) and its response headers. The Content-Security-Policy allows same-origin resources, the SHA-256 hash of the inline theme script in `ui/index.html`, and connections only to its own origin and the API's. `ui/src/test/csp.test.ts` fails if the hash or the API origin falls out of step, so regenerate the hash (the command is in `render.yaml`) whenever that script changes.
+- **The API service** runs the image above with `RAGBENCH_CORS_ORIGINS` set to the static site's origin, plus `RAGBENCH_REQUIRE_HTTPS=1` and `RAGBENCH_TRUST_PROXY_HEADERS=1`. Its interactive docs are at `/docs` and `/redoc`; `GET /` returns 404.
+- **Sleep and wake:** the static site is always available. The free-tier API sleeps after 15 minutes without traffic, so the UI contacts it only when a visitor switches on "Try it live", shows that it is waking, and checks it again before verifying a key or starting a run.
 
 ## Repository layout
 
@@ -93,6 +110,7 @@ configs/            experiment settings, model pricing, free-tier budget
 data/               questions with gold facts, corpus manifest (+ the one shipped PDF)
 evaluation/         recorded results, figures, and the retrieval / judge-validation experiments
 deploy/             build_index.py and the pre-built Chroma index shipped in the Docker image
+render.yaml         the UI's Render static site: build command, API URL, security headers
 scripts/            fetch_corpus.py (download the corpus), mock_api.py (API with a fake model)
 tests/              unit (offline) and integration (real model / live API) tests
 docs/               corpus audit and README screenshots
