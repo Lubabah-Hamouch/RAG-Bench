@@ -14,6 +14,7 @@ export function LiveBar({
   keyStatus,
   live,
   questionId,
+  modelLoading,
   onRun,
   onCancel,
   onReset,
@@ -21,6 +22,7 @@ export function LiveBar({
   keyStatus: KeyStatus;
   live: LiveState;
   questionId: string;
+  modelLoading: boolean;
   onRun: (body: { question?: string; question_id?: string; score: boolean }) => void;
   onCancel: () => void;
   onReset: () => void;
@@ -79,6 +81,12 @@ export function LiveBar({
           )}
         </div>
       </div>
+
+      {ready && modelLoading && (
+        <p className="mt-2 text-right text-[14px] italic text-faint" data-testid="model-load-note">
+          First query may take a minute or more while the model loads.
+        </p>
+      )}
 
       <AnimatePresence initial={false}>
         {custom && !running && (

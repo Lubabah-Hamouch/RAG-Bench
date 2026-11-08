@@ -479,4 +479,71 @@ data: ${JSON.stringify({ strategy: "baseline", label: "Baseline" })}
     await user.click(screen.getByRole("switch", { name: /Try it live/ }));
     expect(await screen.findByText(/couldn't load its retrieval index/)).toBeInTheDocument();
   });
+
+  const health = (live_ready: boolean) =>
+    json({ status: "ok", replay_available: true, questions: 10, models: {}, require_https: false, live_ready, live_error: null });
+  const paths = () => calls.map((c) => c.url).filter((u) => u.includes("/api/")).map((u) => new URL(u).pathname);
+
+  // Regression: Verify was disabled until live_ready, but only a live run makes live_ready true,
+  // and a live run needs a verified key.
+  it("verifies a key and runs while the model is unloaded, then drops the note", async () => {
+    let loaded_ = false;
+    installFetch({
+      "/api/health": () => health(loaded_),
+      "/api/run": () => {
+        loaded_ = true;
+        return liveStream("Q05");
+      },
+    });
+    const user = userEvent.setup();
+    await loaded();
+    await user.click(screen.getByRole("switch", { name: /Try it live/ }));
+    await user.type(await screen.findByLabelText("Groq API key"), KEY);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Verify key" })).toBeEnabled());
+    expect(screen.queryByTestId("model-load-note")).not.toBeInTheDocument(); // key not verified yet
+    await user.click(screen.getByRole("button", { name: "Verify key" }));
+    await screen.findByText(/Key accepted/);
+    expect(screen.getByTestId("model-load-note")).toHaveTextContent(/First query may take/);
+    await user.click(screen.getByRole("button", { name: /Run this question/ }));
+    await screen.findByText("Finished");
+    await waitFor(() => expect(screen.queryByTestId("model-load-note")).not.toBeInTheDocument());
+  });
+
+  it("re-checks health immediately before verifying and before running", async () => {
+    const user = userEvent.setup();
+    await loaded();
+    await user.click(screen.getByRole("switch", { name: /Try it live/ }));
+    await user.type(await screen.findByLabelText("Groq API key"), KEY);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Verify key" })).toBeEnabled());
+    expect(paths()).toEqual(["/api/health"]);
+    await user.click(screen.getByRole("button", { name: "Verify key" }));
+    await screen.findByText(/Key accepted/);
+    expect(paths()).toEqual(["/api/health", "/api/health", "/api/live/validate"]);
+    await user.click(screen.getByRole("button", { name: /Run this question/ }));
+    await screen.findByText("Finished");
+    expect(paths().slice(3, 5)).toEqual(["/api/health", "/api/run"]);
+  });
+
+  it("does not send the key to a server that stopped answering", async () => {
+    let up = true;
+    installFetch({ "/api/health": () => (up ? health(true) : new Response("down", { status: 503 })) });
+    const user = userEvent.setup();
+    await loaded();
+    await user.click(screen.getByRole("switch", { name: /Try it live/ }));
+    await user.type(await screen.findByLabelText("Groq API key"), KEY);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Verify key" })).toBeEnabled());
+    up = false;
+    await user.click(screen.getByRole("button", { name: "Verify key" }));
+    expect(await screen.findByText(/Can't reach the server\./)).toBeInTheDocument();
+    expect(paths()).not.toContain("/api/live/validate");
+  });
+
+  it("gives local instructions and hides the hosted-only warning when the API is local", async () => {
+    installFetch({ "/api/health": () => new Response("nope", { status: 503 }) });
+    const user = userEvent.setup();
+    await loaded();
+    await user.click(screen.getByRole("switch", { name: /Try it live/ }));
+    expect(await screen.findByText("ragbench serve")).toBeInTheDocument();
+    expect(screen.queryByText(/On the hosted demo/)).not.toBeInTheDocument();
+  });
 });

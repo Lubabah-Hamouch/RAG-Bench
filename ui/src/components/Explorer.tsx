@@ -95,13 +95,14 @@ export function Explorer({
             keyStatus={session.keyStatus}
             live={live}
             questionId={benchmarkQuestion.id}
+            modelLoading={backend.state === "up" && !backend.liveReady && !backend.liveError}
             onRun={(body) => void session.run(body)}
             onCancel={session.cancel}
             onReset={session.reset}
           />
         )}
         {liveEnabled && backend.state === "down" && live.status === "idle" && (
-          <p className="-mt-3 text-[12.5px] text-faint">The backend isn't running, so live runs are unavailable. Replay below still works.</p>
+          <p className="-mt-3 text-[12.5px] text-faint">The server can't be reached right now, so live runs are unavailable. Replay below still works.</p>
         )}
 
         {replay.error && !showingLive ? (

@@ -17,8 +17,8 @@ export default function App() {
   const [route, navigate] = useRoute();
   const baseState = useReplayBase();
   const [liveEnabled, setLiveEnabled] = useState(false);
-  const session = useLiveSession();
-  const backend = useBackend(liveEnabled);
+  const { backend, ensureReachable } = useBackend(liveEnabled);
+  const session = useLiveSession(ensureReachable);
 
   const setLive = useCallback(
     (on: boolean) => {

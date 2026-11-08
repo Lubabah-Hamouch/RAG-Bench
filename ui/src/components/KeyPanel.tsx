@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { AlertTriangle, CheckCircle2, Eye, EyeOff, Info, KeyRound, Loader2, Lock, ServerCrash } from "lucide-react";
 import { useState } from "react";
 import type { Backend, KeyStatus } from "@/hooks/useLive";
+import { IS_LOCAL_API } from "@/lib/api";
 
 export function KeyPanel({
   backend,
@@ -19,7 +20,8 @@ export function KeyPanel({
   // written to storage, cookies or the URL, and unmounting the panel discards it.
   const [value, setValue] = useState("");
   const [show, setShow] = useState(false);
-  const ready = backend.state === "up" && backend.liveReady;
+  // Validating a key never touches the embedding model, so it only needs the server to answer.
+  const ready = backend.state === "up";
   const verifying = status.state === "verifying";
 
   return (
@@ -41,12 +43,14 @@ export function KeyPanel({
             Run any benchmark question, or your own, through all five strategies live. Replay stays the default; this
             uses your Groq quota (a full scored run is about 20k tokens).
           </p>
-          <p className="mb-3 flex max-w-xl items-start gap-2 border-l-2 border-warn pl-2.5 text-[14.5px] leading-snug text-ink">
-            <Info size={14} className="mt-0.5 shrink-0 text-warn" />
-            <span>
-              On the hosted demo, live mode can only search the Self-RAG paper, so questions on other topics will get weak or "I don't know" answers.
-            </span>
-          </p>
+          {!IS_LOCAL_API && (
+            <p className="mb-3 flex max-w-xl items-start gap-2 border-l-2 border-warn pl-2.5 text-[14.5px] leading-snug text-ink">
+              <Info size={14} className="mt-0.5 shrink-0 text-warn" />
+              <span>
+                On the hosted demo, live mode can only search the Self-RAG paper, so questions on other topics will get weak or "I don't know" answers.
+              </span>
+            </p>
+          )}
 
           <form
             className="flex max-w-xl flex-col gap-2 sm:flex-row"
@@ -123,30 +127,38 @@ function BackendLine({ backend }: { backend: Backend }) {
         <Loader2 size={13} className="animate-spin" /> Contacting the server…
       </p>
     );
+  if (backend.state === "waking")
+    return (
+      <p className="flex items-center gap-2 text-dim">
+        <Loader2 size={13} className="animate-spin" /> Waking the server, which sleeps when idle. This can take about a minute…
+      </p>
+    );
   if (backend.state === "down")
     return (
       <p className="flex items-start gap-2 text-warn">
         <ServerCrash size={14} className="mt-1 shrink-0" />
-        <span>
-          Can't reach the backend, so live mode is unavailable. Start it with <code className="num bg-ink/10 px-1 text-[13px]">ragbench serve</code>. Replay
-          still works.
-        </span>
+        {IS_LOCAL_API ? (
+          <span>
+            Can't reach the backend, so live mode is unavailable. Start it with <code className="num bg-ink/10 px-1 text-[13px]">ragbench serve</code>. Replay
+            still works.
+          </span>
+        ) : (
+          <span>Can't reach the server right now, so live mode is unavailable. Try again shortly. Replay still works.</span>
+        )}
       </p>
     );
   if (!backend.liveReady && backend.liveError)
     return (
       <p className="flex items-start gap-2 text-warn">
         <ServerCrash size={14} className="mt-0.5 shrink-0" />
-        <span>
-          The server couldn't load its retrieval index ({backend.liveError}), so live runs are unavailable. Check the server log and run{" "}
-          <code className="num bg-ink/10 px-1 text-[13px]">ragbench ingest</code>. Replay still works.
-        </span>
-      </p>
-    );
-  if (!backend.liveReady)
-    return (
-      <p className="flex items-center gap-2 text-dim">
-        <Loader2 size={13} className="animate-spin" /> Server is warming up its embedding model (usually under a minute)…
+        {IS_LOCAL_API ? (
+          <span>
+            The server couldn't load its retrieval index ({backend.liveError}), so live runs may fail. Check the server log and run{" "}
+            <code className="num bg-ink/10 px-1 text-[13px]">ragbench ingest</code>. Replay still works.
+          </span>
+        ) : (
+          <span>The server couldn't load its retrieval index ({backend.liveError}), so live runs may fail. Try again shortly. Replay still works.</span>
+        )}
       </p>
     );
   return null;

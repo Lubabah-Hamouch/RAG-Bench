@@ -11,6 +11,12 @@ export const API_URL: string = (
   (import.meta.env.VITE_API_URL as string | undefined) ?? "http://127.0.0.1:8000"
 ).replace(/\/$/, "");
 
+/** True when the UI talks to an API on this machine, which is what separates local from hosted. */
+export const isLocalApiUrl = (url: string): boolean =>
+  ["localhost", "127.0.0.1", "[::1]"].includes(new URL(url, window.location.href).hostname);
+
+export const IS_LOCAL_API = isLocalApiUrl(API_URL);
+
 export const KEY_HEADER = "X-Groq-Api-Key";
 
 export class ApiError extends Error {
@@ -65,8 +71,10 @@ const FRIENDLY: Record<string, { title: string; hint: string }> = {
   upstream_error: { title: "The model provider failed", hint: "Try again in a moment." },
   internal_error: { title: "Unexpected server error", hint: "Try again; if it persists, check the server log." },
   network: {
-    title: "Can't reach the backend",
-    hint: "Start it with `ragbench serve` (default http://127.0.0.1:8000).",
+    title: "Can't reach the server",
+    hint: IS_LOCAL_API
+      ? "Start it with `ragbench serve` (default http://127.0.0.1:8000)."
+      : "It may be starting up or briefly unavailable. Try again shortly.",
   },
 };
 
@@ -89,10 +97,10 @@ export async function errorFromResponse(res: Response): Promise<ApiError> {
   return new ApiError(message, res.status, code, retry ?? (headerRetry > 0 ? headerRetry : undefined));
 }
 
-async function getJson<T>(url: string): Promise<T> {
+async function getJson<T>(url: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(url, { headers: { Accept: "application/json" } });
+    res = await fetch(url, { ...init, headers: { Accept: "application/json" } });
   } catch {
     throw new ApiError("Network error", 0, "network");
   }
@@ -149,11 +157,21 @@ export async function loadResult(source: ReplaySource, qid: string): Promise<Que
 
 // ---- backend health and key validation ------------------------------------------------------------------
 
-export async function getHealth(): Promise<HealthOut | null> {
+const HEALTH_TIMEOUT_MS = 8000;
+
+/** The server's health, or null if it did not answer in time. Never served from a cache. */
+export async function getHealth(timeoutMs = HEALTH_TIMEOUT_MS): Promise<HealthOut | null> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    return await getJson<HealthOut>(`${API_URL}/api/health`);
+    return await getJson<HealthOut>(`${API_URL}/api/health`, {
+      signal: ctrl.signal,
+      cache: "no-store",
+    });
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
