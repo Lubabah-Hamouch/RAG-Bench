@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui";
 import { useBackend, useLiveSession } from "@/hooks/useLive";
 import { useReplayBase } from "@/hooks/useReplay";
 import { useTheme } from "@/hooks/useTheme";
+import { IS_LOCAL_API } from "@/lib/api";
 import { registerQuestionOrder } from "@/lib/qlabel";
 import { useRoute, type View } from "@/lib/route";
 
@@ -58,9 +59,15 @@ export default function App() {
           <div role="alert" className="surface mx-auto mt-16 max-w-xl p-8 text-center">
             <h1 className="text-[22px] font-semibold">Couldn't load the benchmark data</h1>
             <p className="mt-2 text-[15.5px] leading-relaxed text-dim">
-              The UI reads static files from <code className="num bg-ink/10 px-1">/replay</code> (create them with{" "}
-              <code className="num bg-ink/10 px-1">ragbench export-replay</code>) or, failing that, the API (start it with{" "}
-              <code className="num bg-ink/10 px-1">ragbench serve</code>).
+              {IS_LOCAL_API ? (
+                <>
+                  The UI reads static files from <code className="num bg-ink/10 px-1">/replay</code> (create them with{" "}
+                  <code className="num bg-ink/10 px-1">ragbench export-replay</code>) or, failing that, the API (start it with{" "}
+                  <code className="num bg-ink/10 px-1">ragbench serve</code>).
+                </>
+              ) : (
+                "Reload the page to try again. If it keeps happening, try again a little later."
+              )}
             </p>
             <p className="num mt-3 text-[12.5px] text-faint">{baseState.error.message}</p>
           </div>
@@ -89,7 +96,13 @@ export default function App() {
                 <Benchmark summary={base.summary} onPick={(id) => navigate({ view: "explore", qid: id })} />
               ) : (
                 <p className="surface p-8 text-center text-dim">
-                  No aggregate report found. Run <code className="num">ragbench analyze</code> then <code className="num">ragbench export-replay</code>.
+                  {IS_LOCAL_API ? (
+                    <>
+                      No aggregate report found. Run <code className="num">ragbench analyze</code> then <code className="num">ragbench export-replay</code>.
+                    </>
+                  ) : (
+                    "The aggregate report isn't available right now. The Explorer still shows every question."
+                  )}
                 </p>
               ))}
             {route.view === "method" && <Method />}

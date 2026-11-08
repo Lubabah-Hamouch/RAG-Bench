@@ -321,6 +321,39 @@ data: ${JSON.stringify({ strategy: "baseline", label: "Baseline" })}
     expect(await screen.findByRole("heading", { name: /How the comparison works/ }, { timeout: 3000 })).toBeVisible();
   }, 15000);
 
+  it("cancelling a run returns to the recorded result at once", async () => {
+    installFetch({
+      "/api/run": () => {
+        const r = byId.Q05;
+        const body = new ReadableStream({
+          start(c) {
+            c.enqueue(
+              new TextEncoder().encode(
+                `event: retrieval\ndata: ${JSON.stringify({ question: r.question, chunks: r.retrieval.chunks })}\n\n`,
+              ),
+            );
+          },
+        });
+        return new Response(body, { status: 200, headers: { "content-type": "text/event-stream" } });
+      },
+    });
+    const user = userEvent.setup();
+    await loaded();
+    await user.click(screen.getByRole("switch", { name: /Try it live/ }));
+    await user.type(await screen.findByLabelText("Groq API key"), KEY);
+    await user.click(screen.getByRole("button", { name: "Verify key" }));
+    await screen.findByText(/Key accepted/);
+    await user.click(screen.getByRole("button", { name: /Run this question/ }));
+    await screen.findByText(/Running all five conditions/);
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByText(/Running all five conditions/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Stopped")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Run this question/ })).toBeEnabled();
+    expect(screen.queryByText("Live result")).not.toBeInTheDocument();
+    const request = calls.find((c) => c.url.includes("/api/run"))!;
+    expect(request.init!.signal!.aborted).toBe(true); // the request itself was stopped too
+  });
+
   async function runLive(user: ReturnType<typeof userEvent.setup>) {
     await user.click(screen.getByRole("switch", { name: /Try it live/ }));
     await user.type(await screen.findByLabelText("Groq API key"), KEY);

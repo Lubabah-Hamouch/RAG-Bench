@@ -1,5 +1,7 @@
 import { act, render, renderHook, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import questions from "../../public/replay/questions.json";
+import App from "../App";
 import { KeyPanel } from "../components/KeyPanel";
 import { useBackend, type Backend } from "../hooks/useLive";
 import { friendly, getHealth, IS_LOCAL_API, isLocalApiUrl } from "../lib/api";
@@ -62,8 +64,33 @@ describe("hosted copy", () => {
     expect(document.body.textContent).not.toContain("ragbench");
   });
 
-  it("gives no local-only instructions in the network error", () => {
+  it("gives no local-only instructions in the network or server errors", () => {
     expect(friendly("network").hint).not.toContain("ragbench");
+    expect(friendly("internal_error").hint).not.toMatch(/ragbench|server log/);
+  });
+
+  it("gives no local-only instructions when the benchmark data cannot load", async () => {
+    vi.stubGlobal("fetch", vi.fn(down));
+    render(<App />);
+    expect(await screen.findByText(/Couldn't load the benchmark data/)).toBeInTheDocument();
+    expect(screen.getByText(/Reload the page/)).toBeInTheDocument();
+    expect(document.body.textContent).not.toContain("ragbench");
+  });
+
+  it("gives no local-only instructions when the aggregate report is missing", async () => {
+    window.location.hash = "#/benchmark";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) =>
+        String(input).endsWith("/replay/questions.json")
+          ? new Response(JSON.stringify(questions), { status: 200, headers: { "content-type": "application/json" } })
+          : down(),
+      ),
+    );
+    render(<App />);
+    expect(await screen.findByText(/aggregate report isn't available/)).toBeInTheDocument();
+    expect(document.body.textContent).not.toContain("ragbench");
+    window.location.hash = "";
   });
 });
 

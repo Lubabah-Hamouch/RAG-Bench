@@ -69,7 +69,10 @@ const FRIENDLY: Record<string, { title: string; hint: string }> = {
   invalid_request: { title: "Nothing to ask", hint: "Type a question first." },
   unknown_question: { title: "Unknown question", hint: "That benchmark question does not exist." },
   upstream_error: { title: "The model provider failed", hint: "Try again in a moment." },
-  internal_error: { title: "Unexpected server error", hint: "Try again; if it persists, check the server log." },
+  internal_error: {
+    title: "Unexpected server error",
+    hint: IS_LOCAL_API ? "Try again; if it persists, check the server log." : "Try again in a moment.",
+  },
   network: {
     title: "Can't reach the server",
     hint: IS_LOCAL_API

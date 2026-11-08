@@ -148,15 +148,21 @@ export function useLiveSession(ensureReachable: () => Promise<boolean>) {
     }
   }, [ensureReachable]);
 
-  const cancel = useCallback(() => {
+  const abort = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
   }, []);
 
+  /** Stop the run in progress and go straight back to the recorded result. */
+  const cancel = useCallback(() => {
+    abort();
+    dispatch({ type: "reset" });
+  }, [abort]);
+
   const run = useCallback(
     async (body: RunRequest) => {
       if (!keyRef.current) return;
-      cancel();
+      abort();
       const ctrl = new AbortController();
       abortRef.current = ctrl;
       dispatch({ type: "start", scoring: body.score, at: Date.now() });
@@ -181,16 +187,16 @@ export function useLiveSession(ensureReachable: () => Promise<boolean>) {
       // the run has loaded the model on the server, so pick up the new live_ready
       if (!ctrl.signal.aborted) void ensureReachable();
     },
-    [cancel, ensureReachable],
+    [abort, ensureReachable],
   );
 
   /** Abort anything in flight and forget the key. */
   const wipe = useCallback(() => {
-    cancel();
+    abort();
     keyRef.current = "";
     setKeyStatus({ state: "idle" });
     dispatch({ type: "reset" });
-  }, [cancel]);
+  }, [abort]);
 
   const reset = useCallback(() => dispatch({ type: "reset" }), []);
 

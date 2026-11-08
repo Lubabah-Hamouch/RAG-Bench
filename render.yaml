@@ -1,0 +1,28 @@
+# The RAGBench frontend as a Render static site. Create it from this file as a Blueprint.
+# The API (Dockerfile) is a separate web service that this file does not manage.
+#
+# Two values must stay in step with that API's origin: VITE_API_URL below, and connect-src in the
+# Content-Security-Policy. ui/src/test/csp.test.ts checks that they match.
+# After creating the site, set RAGBENCH_CORS_ORIGINS on the API service to this site's origin.
+services:
+  - type: web
+    name: ragbench-ui
+    runtime: static
+    buildCommand: cd ui && npm ci && npm run build
+    staticPublishPath: ./ui/dist
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: VITE_API_URL
+        value: https://rag-bench.onrender.com
+    headers:
+      # Same policy the API used to send with the UI, plus the API origin in connect-src.
+      # script-src carries the SHA-256 of the inline theme script in ui/index.html. Regenerate it
+      # if that script changes (ui/src/test/csp.test.ts fails until you do):
+      #   node -e "const s=require('fs').readFileSync('ui/index.html','utf8').match(/<script>([\s\S]*?)<\/script>/)[1];console.log(require('crypto').createHash('sha256').update(s).digest('base64'))"
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; script-src 'self' 'sha256-F42jhhy/all3LU5NICkMvnC3sMnIFrjVwd4zIJbiSak='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://rag-bench.onrender.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
