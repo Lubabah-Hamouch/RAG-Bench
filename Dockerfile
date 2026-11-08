@@ -1,27 +1,16 @@
 # syntax=docker/dockerfile:1
-# RAGBench in one container: the Replay UI (static files) and the live API (bring-your-own-key, SSE),
-# both served by FastAPI from the same origin.
+# The RAGBench API: replay endpoints and live runs (bring-your-own-key, SSE). The frontend is deployed
+# separately as a static site.
 #
 #   docker build -t ragbench .
-#   docker run --rm -p 8000:8000 ragbench        # http://localhost:8000
+#   docker run --rm -p 8000:8000 ragbench        # http://localhost:8000/docs
 #
-# On Render (Docker runtime), set once the service URL is known:
-#   RAGBENCH_CORS_ORIGINS=["https://<service>.onrender.com"]
+# On Render (Docker runtime), set once the frontend's URL is known:
+#   RAGBENCH_CORS_ORIGINS=["https://<frontend>.onrender.com"]
 #   RAGBENCH_REQUIRE_HTTPS=1
 #   RAGBENCH_TRUST_PROXY_HEADERS=1
 # Do not set GENERATOR_API_KEY or JUDGE_API_KEY: live runs only ever use the visitor's own key.
 
-# ---- 1. frontend ------------------------------------------------------------------------------
-FROM node:22-slim AS ui
-WORKDIR /ui
-COPY ui/package.json ui/package-lock.json ./
-RUN npm ci
-COPY ui/ ./
-# An empty API URL makes the UI call /api/... on its own origin.
-ENV VITE_API_URL=""
-RUN npm run build
-
-# ---- 2. runtime -------------------------------------------------------------------------------
 FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -53,7 +42,6 @@ COPY data/corpus/manifest.yaml data/corpus/
 COPY evaluation/results/ evaluation/results/
 # Pre-built index (see deploy/chroma/): building it needs a headless browser for 3 of the 7 sources.
 COPY deploy/chroma/ data/chroma/
-COPY --from=ui /ui/dist ui/dist
 
 # Chroma opens its SQLite file read-write, so the app user owns the index and nothing else.
 RUN useradd --create-home --uid 1000 app && chown -R app:app data/chroma

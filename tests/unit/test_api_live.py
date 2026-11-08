@@ -25,7 +25,7 @@ from api_fakes import (
 from fastapi.testclient import TestClient
 
 from ragbench.api.live import LazyRetriever, default_client_factory
-from ragbench.api.main import create_app
+from ragbench.api.main import API_CSP, DOCS_CSP, create_app
 from ragbench.api.schemas import QuestionResultOut
 from ragbench.api.security import (
     InflightGuard,
@@ -406,6 +406,49 @@ def test_cors_allows_the_local_dev_origin_and_the_key_header_only():
 def test_cors_origins_come_from_the_environment(monkeypatch):
     monkeypatch.setenv("RAGBENCH_CORS_ORIGINS", '["https://demo.example"]')
     assert ApiSettings(_env_file=None).cors_origins == ["https://demo.example"]
+    client, *_ = make()
+    allowed = client.options(
+        "/api/run",
+        headers={
+            "Origin": "https://demo.example",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "x-groq-api-key,content-type",
+        },
+    )
+    assert allowed.headers["access-control-allow-origin"] == "https://demo.example"
+    other = client.get("/api/health", headers={"Origin": "http://localhost:5173"})
+    assert "access-control-allow-origin" not in other.headers
+
+
+# ---- API-only app and its security headers ------------------------------
+
+
+def test_root_is_a_plain_api_404_and_the_frontend_is_not_served():
+    client, *_ = make()
+    for path in ("/", "/index.html", "/replay/questions.json"):
+        r = client.get(path)
+        assert r.status_code == 404
+        assert r.json() == {"error": "http_error", "message": "Not Found"}
+        assert r.headers["content-security-policy"] == API_CSP
+
+
+def test_documentation_pages_get_a_policy_that_allows_their_own_assets():
+    client, *_ = make()
+    for path, asset in (
+        ("/docs", "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/"),
+        ("/redoc", "https://cdn.jsdelivr.net/npm/redoc@2/"),
+    ):
+        r = client.get(path)
+        assert r.status_code == 200 and asset in r.text
+        csp = r.headers["content-security-policy"]
+        assert csp == DOCS_CSP and asset in csp
+        assert "connect-src 'self'" in csp and "frame-ancestors 'none'" in csp
+
+
+def test_every_other_route_keeps_the_strict_policy():
+    client, *_ = make()
+    for path in ("/api/health", "/openapi.json", "/docs/oauth2-redirect", "/docs/other"):
+        assert client.get(path).headers["content-security-policy"] == API_CSP
 
 
 # ---- key validation endpoint ------------------------------
@@ -538,11 +581,88 @@ def test_warmup_loads_in_the_background_and_queries_wait_for_it():
 
 def test_health_reports_whether_live_runs_are_ready():
     client, *_ = make()
-    # the stub retriever is built on demand; before any use it is not "ready"
-    first = client.get("/api/health").json()["live_ready"]
+    assert client.get("/api/health").json()["live_ready"] is False
+    assert client.get("/api/health").json()["live_ready"] is False  # polling does not load it
     run(client)
     assert client.get("/api/health").json()["live_ready"] is True
-    assert first in (True, False)
+
+
+def test_startup_and_replay_do_not_load_the_retriever():
+    import threading
+
+    built = []
+
+    def factory():
+        built.append(1)
+        return StubRetriever()
+
+    assert ApiSettings(_env_file=None).warm_retriever is False
+    client, *_ = make()
+    client.app.state.ctx.retriever = LazyRetriever(factory)
+    for path in ("/api/health", "/api/questions", "/api/strategies"):
+        assert client.get(path).status_code == 200
+    assert client.post("/api/live/validate", headers=HEADERS).status_code == 200
+    assert built == []
+    assert not [t for t in threading.enumerate() if t.name == "retriever-warmup"]
+
+    assert run(client).status_code == 200  # the first live run is what loads it
+    assert built == [1]
+
+
+def test_warm_setting_opts_back_in_to_loading_at_startup(monkeypatch):
+    import time
+
+    monkeypatch.setenv("RAGBENCH_WARM_RETRIEVER", "1")
+    assert ApiSettings(_env_file=None).warm_retriever is True
+    client, *_ = make()
+    for _ in range(100):
+        if client.get("/api/health").json()["live_ready"]:
+            break
+        time.sleep(0.02)
+    assert client.get("/api/health").json()["live_ready"] is True
+
+
+def test_concurrent_first_queries_share_one_load_and_health_tracks_it():
+    import threading
+
+    gate = threading.Event()
+    started = threading.Event()
+    built = []
+
+    def factory():
+        started.set()
+        gate.wait(5)
+        built.append(1)
+        return StubRetriever()
+
+    lazy = LazyRetriever(factory)
+    results = []
+    threads = [threading.Thread(target=lambda: results.append(lazy.query("q"))) for _ in range(4)]
+    for t in threads:
+        t.start()
+    assert started.wait(5)
+    assert lazy.ready is False  # health stays false, and does not block, during the load
+    gate.set()
+    for t in threads:
+        t.join()
+    assert built == [1] and len(results) == 4 and lazy.ready is True
+
+
+def test_a_failed_load_is_retried_by_the_next_query():
+    attempts = []
+
+    def flaky():
+        attempts.append(1)
+        if len(attempts) == 1:
+            raise RuntimeError("index unreadable")
+        return StubRetriever()
+
+    lazy = LazyRetriever(flaky)
+    with pytest.raises(RuntimeError):
+        lazy.query("q")
+    assert lazy.ready is False and lazy.error == "RuntimeError"
+    assert lazy.query("q")
+    assert lazy.ready is True and lazy.error is None
 
 
 def test_a_slow_cold_start_is_not_charged_to_the_run_budget():

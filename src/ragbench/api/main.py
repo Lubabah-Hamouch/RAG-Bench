@@ -8,19 +8,12 @@ the X-Groq-Api-Key header; the server holds no LLM key of its own.
 
 from __future__ import annotations
 
-import base64
-import hashlib
-import logging
-import re
 from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from starlette.responses import Response
-from starlette.types import Scope
 
 from ragbench.api.live import ClientFactory, LazyRetriever, default_client_factory
 from ragbench.api.replay import ReplayStore
@@ -38,36 +31,21 @@ from ragbench.metrics.cost import Pricing, load_pricing
 from ragbench.pipeline import Retriever
 from ragbench.questions import QuestionSet, load_questions
 
-log = logging.getLogger(__name__)
-
 API_CSP = "default-src 'none'; frame-ancestors 'none'"
-_INLINE_SCRIPT = re.compile(r"<script>(.*?)</script>", re.DOTALL)
 
-
-def ui_csp(index_html: str) -> str:
-    """CSP for the built frontend: only its own origin, plus the hashes of its inline scripts."""
-    hashes = " ".join(
-        "'sha256-" + base64.b64encode(hashlib.sha256(s.encode("utf-8")).digest()).decode() + "'"
-        for s in _INLINE_SCRIPT.findall(index_html)
-    )
-    return (
-        f"default-src 'self'; script-src 'self' {hashes}; style-src 'self' 'unsafe-inline'; "
-        "img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; "
-        "base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
-    )
-
-
-class UiFiles(StaticFiles):
-    """The built frontend (ui/dist), served from the API's origin with its own CSP."""
-
-    def __init__(self, directory: Path) -> None:
-        super().__init__(directory=directory, html=True)
-        self.csp = ui_csp((directory / "index.html").read_text(encoding="utf-8"))
-
-    async def get_response(self, path: str, scope: Scope) -> Response:
-        response = await super().get_response(path, scope)
-        response.headers["Content-Security-Policy"] = self.csp
-        return response
+# Only for FastAPI's two documentation pages, which load their code from a CDN. Swagger UI needs an
+# inline bootstrap script; ReDoc needs web fonts, generated styles, a blob worker and its logo.
+_SWAGGER_CDN = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/"
+_REDOC_CDN = "https://cdn.jsdelivr.net/npm/redoc@2/"
+DOCS_CSP = (
+    "default-src 'none'; "
+    f"script-src 'unsafe-inline' {_SWAGGER_CDN} {_REDOC_CDN}; "
+    f"style-src 'unsafe-inline' {_SWAGGER_CDN} https://fonts.googleapis.com; "
+    "font-src https://fonts.gstatic.com; "
+    "img-src data: https://fastapi.tiangolo.com https://cdn.redoc.ly; "
+    "worker-src blob:; connect-src 'self'; base-uri 'none'; form-action 'none'; "
+    "frame-ancestors 'none'"
+)
 
 
 def create_app(
@@ -81,13 +59,8 @@ def create_app(
     pricing: Pricing | None = None,
     titles: dict[str, str] | None = None,
     models: dict[str, str] | None = None,
-    ui_dir: Path | None = None,
 ) -> FastAPI:
-    """Build the app. Every dependency can be injected, which is how the tests avoid the network.
-
-    If the frontend has been built (`ui/dist`, or `ui_dir`), it is served at "/" from the same
-    origin as the API. Without a build, the server is API-only, as in local development.
-    """
+    """Build the app. Every dependency can be injected, which is how the tests avoid the network."""
     install_log_redaction()
     settings = settings or ApiSettings()
     experiment = experiment or load_experiment_settings()
@@ -132,12 +105,14 @@ def create_app(
         allow_credentials=False,
     )
 
+    docs_paths = {app.docs_url, app.redoc_url}
+
     @app.middleware("http")
     async def security_headers(request: Request, call_next):  # type: ignore[no-untyped-def]
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
-        # UiFiles sets its own policy; everything else (the API) gets the strict one
-        response.headers.setdefault("Content-Security-Policy", API_CSP)
+        csp = DOCS_CSP if request.url.path in docs_paths else API_CSP
+        response.headers["Content-Security-Policy"] = csp
         return response
 
     @app.exception_handler(StarletteHTTPException)
@@ -150,11 +125,6 @@ def create_app(
         ctx.retriever.warm()
 
     app.include_router(build_router(ctx))
-    # mounted last, so /api, /docs and /openapi.json take precedence over the static files
-    ui_dir = ui_dir or repo_root() / "ui" / "dist"
-    if (ui_dir / "index.html").is_file():
-        app.mount("/", UiFiles(ui_dir), name="ui")
-        log.info("serving the frontend from %s", ui_dir)
     app.state.ctx = ctx
     return app
 
@@ -165,9 +135,9 @@ _app: FastAPI | None = None
 def __getattr__(name: str) -> FastAPI:
     """`ragbench.api.main:app` for uvicorn, built on first access rather than at import.
 
-    Importing this module must stay side-effect free: building the app starts loading the
-    embedding model in the background, which tests and tools that only need `create_app` should
-    not pay for (and two apps loading the same index at once would race).
+    Importing this module must stay side-effect free: building the app reads its config and, with
+    RAGBENCH_WARM_RETRIEVER set, starts loading the embedding model in the background, which tests
+    and tools that only need `create_app` should not pay for.
     """
     global _app
     if name == "app":

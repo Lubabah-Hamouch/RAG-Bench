@@ -16,9 +16,8 @@ venv/
 .vscode/
 .idea/
 
-# Frontend: installed and built inside the image
-ui/node_modules/
-ui/dist/
+# Frontend: deployed separately as a static site
+ui/
 
 # Data: the image gets the pre-built index from deploy/chroma/ (explicit COPY), never the local one
 data/chroma/

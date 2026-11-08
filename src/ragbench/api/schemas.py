@@ -146,8 +146,8 @@ class HealthOut(BaseModel):
     questions: int
     models: dict[str, str]
     require_https: bool
-    live_ready: bool  # false while the embedding model is still loading at startup
-    live_error: str | None = None  # set if loading it failed (live runs are unavailable)
+    live_ready: bool  # false until the embedding model and index have loaded (first live run)
+    live_error: str | None = None  # set if the last attempt to load them failed
 
 
 class ValidateOut(BaseModel):

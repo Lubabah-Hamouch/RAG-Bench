@@ -63,7 +63,11 @@ def default_client_factory(role: str, api_key: str) -> ChatClient:
 
 
 class LazyRetriever:
-    """Builds the embedder and Chroma store on first use, so replay-only servers start fast."""
+    """Builds the embedder and Chroma store on the first live query, not at server startup.
+
+    Replay-only visitors never pay for the load. Queries that arrive during the load wait for it
+    instead of starting a second one, and a failed load is retried by the next query.
+    """
 
     # Chroma's client construction is not safe to run concurrently (two builds on one index race
     # and one fails), so every instance in the process builds under one shared lock.
@@ -96,7 +100,7 @@ class LazyRetriever:
             log.warning("retriever warm-up failed: %s", type(exc).__name__)
 
     def warm(self) -> None:
-        """Start loading in a background thread (idempotent). Queries wait for it if needed."""
+        """Load in a background thread now (RAGBENCH_WARM_RETRIEVER). Queries wait for it."""
         if not self.ready:
             threading.Thread(
                 target=self._warm_quietly, name="retriever-warmup", daemon=True
@@ -112,8 +116,8 @@ def _default_retriever() -> Retriever:
 
     s = load_experiment_settings()
     embedder = Embedder(s.retrieval.embedding_model)
-    # Load the model now, not on the first query: `ready` (and /api/health's live_ready) must only
-    # turn true once a live run will not wait for the embedding model.
+    # Load the model as part of this build, not on the first encode: `ready` (and /api/health's
+    # live_ready) must only turn true once a live run will not wait for the embedding model.
     embedder.warm()
     return VectorStore(resolve_chroma_dir(s), embedder)
 
